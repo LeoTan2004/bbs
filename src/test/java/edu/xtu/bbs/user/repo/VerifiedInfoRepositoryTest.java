@@ -1,5 +1,9 @@
-package edu.xtu.bbs.user;
+package edu.xtu.bbs.user.repo;
 
+import edu.xtu.bbs.user.model.Role;
+import edu.xtu.bbs.user.model.Status;
+import edu.xtu.bbs.user.model.User;
+import edu.xtu.bbs.user.model.VerifiedInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

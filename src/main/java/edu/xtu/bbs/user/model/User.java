@@ -1,4 +1,4 @@
-package edu.xtu.bbs.user;
+package edu.xtu.bbs.user.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;

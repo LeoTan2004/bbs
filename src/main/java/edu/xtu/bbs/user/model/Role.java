@@ -1,4 +1,4 @@
-package edu.xtu.bbs.user;
+package edu.xtu.bbs.user.model;
 
 public enum Role {
     User, // General User

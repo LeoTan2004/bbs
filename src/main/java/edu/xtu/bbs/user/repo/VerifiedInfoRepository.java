@@ -1,5 +1,7 @@
-package edu.xtu.bbs.user;
+package edu.xtu.bbs.user.repo;
 
+import edu.xtu.bbs.user.model.User;
+import edu.xtu.bbs.user.model.VerifiedInfo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.CrudRepository;

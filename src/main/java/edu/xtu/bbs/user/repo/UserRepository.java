@@ -1,5 +1,8 @@
-package edu.xtu.bbs.user;
+package edu.xtu.bbs.user.repo;
 
+import edu.xtu.bbs.user.model.Role;
+import edu.xtu.bbs.user.model.Status;
+import edu.xtu.bbs.user.model.User;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;

@@ -1,4 +1,4 @@
-package edu.xtu.bbs.user;
+package edu.xtu.bbs.user.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
