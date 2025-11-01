@@ -1,4 +1,4 @@
-package edu.xtu.bbs.user.model;
+package edu.xtu.bbs.verification;
 
 public enum VerificationStatus {
     Pending,

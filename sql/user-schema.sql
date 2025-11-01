@@ -1,5 +1,6 @@
 USE bbs_dev;
 
+
 CREATE TABLE IF NOT EXISTS users
 (
     id            INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,15 +36,19 @@ CREATE TABLE IF NOT EXISTS verified_info
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) comment "Table to store verified user information";
 
-CREATE TABLE IF NOT EXISTS email_verification_request
+DROP TABLE IF EXISTS verification_request;
+
+CREATE TABLE IF NOT EXISTS verification_request
 (
-    id           INT AUTO_INCREMENT PRIMARY KEY,
-    email        VARCHAR(255) NOT NULL,
-    scope        VARCHAR(255) NOT NULL,
-    token        VARCHAR(255) NOT NULL,
-    credential   VARCHAR(255) NOT NULL,
-    requested_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at   TIMESTAMP    NOT NULL,
-    status       VARCHAR(50)  NOT NULL DEFAULT 'pending',
-    UNIQUE INDEX idx_email_token (email, token)
-) comment "Table to store user verification requests";
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    principle     VARCHAR(255) NOT NULL,
+    scope         VARCHAR(255) NOT NULL,
+    token         VARCHAR(255) NOT NULL,
+    credential    VARCHAR(255) NOT NULL,
+    requested_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at    TIMESTAMP    NOT NULL,
+    status        VARCHAR(50)  NOT NULL DEFAULT 'pending',
+    valid_count   INT          NOT NULL DEFAULT 0,
+    last_valid_at TIMESTAMP    NULL     DEFAULT NULL,
+    UNIQUE INDEX idx_email_token (principle, token)
+) comment "Table to store user verificationParam requests";

@@ -1,4 +1,15 @@
 spring:
   application:
     name: BBS
-
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      smtp:
+        auth: true
+        starttls:
+          enable: true
+    port: 465
+    ssl:
+      enabled: true

@@ -1,4 +1,4 @@
-package edu.xtu.bbs.user.model;
+package edu.xtu.bbs.verification;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -12,8 +12,8 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@Table(name = "email_verification_request")
-public class EmailVerificationRequest {
+@Table(name = "verification_request")
+public class VerificationRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -21,8 +21,8 @@ public class EmailVerificationRequest {
 
     @Size(max = 255)
     @NotNull
-    @Column(name = "email", nullable = false)
-    private String email;
+    @Column(name = "principle", nullable = false)
+    private String principle;
 
     @Size(max = 255)
     @NotNull
@@ -51,5 +51,11 @@ public class EmailVerificationRequest {
     @Column(name = "status", nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
     private VerificationStatus status = VerificationStatus.Pending;
+
+    @Column(name = "valid_count")
+    private Integer validCount;
+
+    @Column(name = "last_valid_at")
+    private Instant lastValidAt;
 
 }
