@@ -1,14 +1,20 @@
 package edu.xtu.bbs.user.service;
 
+import com.qcloud.cos.COSClient;
+import com.qcloud.cos.ClientConfig;
+import com.qcloud.cos.auth.BasicCOSCredentials;
+import com.qcloud.cos.region.Region;
+import edu.xtu.bbs.user.config.AvatarConfiguration;
+import edu.xtu.bbs.user.config.OssConfiguration;
 import edu.xtu.bbs.user.exception.IllegalContentTypeException;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.unit.DataSize;
 
 import javax.imageio.ImageIO;
@@ -19,16 +25,32 @@ import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(properties = {
-        "oss.secret-id=${TENCENT_SECRET_ID:id}",
-        "oss.secret-key=${TENCENT_SECRET_KEY:key}",
-        "oss.region=${TENCENT_REGION:ap-guangzhou}",
-        "oss.avatar.bucket=${TENCENT_BUCKET:avatar-bucket}",
-})
 class AvatarServiceTest {
 
-    @Autowired
     private AvatarService avatarService;
+
+    private String getEnvOrDefault(String name, String defaultValue) {
+        String value = System.getenv(name);
+        return (value == null || value.isEmpty()) ? defaultValue : value;
+    }
+
+    @BeforeEach
+    void setUp() {
+        final OssConfiguration ossConfiguration = new OssConfiguration();
+        final String tencentSecretId = getEnvOrDefault("TENCENT_SECRET_ID", "id");
+        final String tencentSecretKey = getEnvOrDefault("TENCENT_SECRET_KEY", "key");
+        final String tencentRegion = getEnvOrDefault("TENCENT_REGION", "ap-guangzhou");
+        final String tencentBucket = getEnvOrDefault("TENCENT_BUCKET", "avatar-bucket");
+        ossConfiguration.setRegion(tencentRegion);
+        ossConfiguration.setSecretId(tencentSecretId);
+        ossConfiguration.setSecretKey(tencentSecretKey);
+        final AvatarConfiguration avatarConfiguration = new AvatarConfiguration();
+        avatarConfiguration.setBucket(tencentBucket);
+        avatarConfiguration.setPrefix("/avatars");
+
+        final COSClient client = new COSClient(new BasicCOSCredentials(tencentSecretId, tencentSecretKey), new ClientConfig(new Region(tencentRegion)));
+        this.avatarService = new AvatarService(avatarConfiguration, client);
+    }
 
     @Test
     void testGenerateAvatarUrl() {
@@ -91,7 +113,7 @@ class AvatarServiceTest {
         final String principle = "12345";
         final String contentType = "image/png";
         final DataSize dataSize = DataSize.ofMegabytes(10); // Assuming max size is less than 5MB
-        assertThrows(org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException.class, () ->
+        assertThrows(FileSizeLimitExceededException.class, () ->
                 avatarService.generateAvatarUploadUrl(principle, contentType, dataSize)
         );
     }

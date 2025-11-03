@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-@EnabledIfEnvironmentVariable(named = "TEST_MAIL", matches = "*@*")
+@EnabledIfEnvironmentVariable(named = "TEST_MAIL", matches = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")
 class EmailSenderTest {
 
     @Value("${TEST_MAIL:test@mail}")

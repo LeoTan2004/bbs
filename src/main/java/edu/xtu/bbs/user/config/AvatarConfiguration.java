@@ -15,11 +15,11 @@ public class AvatarConfiguration {
 
     private String bucket;
 
-    private String prefix;
+    private String prefix = "/avatars";
 
-    private DataSize maxSize;
+    private DataSize maxSize = DataSize.ofMegabytes(5);
 
-    private List<String> allowTypes;
+    private List<String> allowTypes = List.of("image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp");
 
-    private Duration expiredAfter;
+    private Duration expiredAfter = Duration.ofSeconds(30);
 }
