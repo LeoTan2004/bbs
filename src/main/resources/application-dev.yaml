@@ -1,4 +1,7 @@
 spring:
+  jpa:
+    open-in-view: off
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME:root}

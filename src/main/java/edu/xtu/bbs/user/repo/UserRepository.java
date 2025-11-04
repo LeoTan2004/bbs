@@ -54,5 +54,8 @@ public interface UserRepository extends CrudRepository<User, Integer> {
     @Query("update User u set u.status = :status where u.id = :id")
     int updateStatusById(@NonNull @Param("status") Status status, @Param("id") Integer id);
 
+    boolean existsByEmail(String email);
+
+    boolean existsByUsername(String username);
 
 }
