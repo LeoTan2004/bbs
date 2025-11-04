@@ -1,9 +1,9 @@
 package edu.xtu.bbs.verification;
 
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -18,7 +18,7 @@ public class VerificationService {
     @Value("${verification.code.length:6}")
     private int codeLength;
 
-    @Value("${verification.valid.duration:3s}")
+    @Value("${verification.valid.duration:300s}")
     private Duration validDuration;
 
     @Value("${verification.verify.duration:1s}")
@@ -33,7 +33,10 @@ public class VerificationService {
     }
 
     protected String generateCode() {
-        return String.format("%0" + codeLength + "d", (int) (Math.random() * Math.pow(10, codeLength)));
+
+        SecureRandom secureRandom = new SecureRandom();
+        return String.format("%0" + codeLength + "d",
+                secureRandom.nextInt((int) Math.pow(10, codeLength)));
     }
 
     protected String generateToken() {
@@ -91,7 +94,8 @@ public class VerificationService {
         // Record some basic audit info
         request.setValidCount(currentValidCount + 1);
         request.setLastValidAt(now);
-        if (Objects.equals(request.getCredential(), param.credential()) && Objects.equals(request.getScope(), param.scope())) {
+        if (Objects.equals(request.getCredential(), param.credential())
+                && Objects.equals(request.getScope(), param.scope())) {
             request.setStatus(VerificationStatus.Verified);
             verificationRequestRepository.save(request);
             return true;
@@ -99,5 +103,6 @@ public class VerificationService {
         verificationRequestRepository.save(request);
         return false;
     }
+
 
 }
