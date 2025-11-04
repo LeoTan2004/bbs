@@ -25,6 +25,9 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public User getUserById(Integer id) throws UserNotFoundException {
+        if (id == null) {
+            throw new UserNotFoundException("null");
+        }
         final Optional<User> user = userRepository.findById(id);
         return user.orElseThrow(() -> new UserNotFoundException(id.toString()));
     }

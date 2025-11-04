@@ -1,10 +1,14 @@
 package edu.xtu.bbs.user.controller;
 
-import edu.xtu.bbs.user.exception.*;
+import edu.xtu.bbs.user.exception.EmailAlreadyExistsException;
+import edu.xtu.bbs.user.exception.EmailNotFoundException;
+import edu.xtu.bbs.user.exception.InvalidVerificationException;
+import edu.xtu.bbs.user.exception.UsernameOccupiedException;
 import edu.xtu.bbs.user.service.AuthenticationService;
 import edu.xtu.bbs.user.vo.RegisterVo;
 import edu.xtu.bbs.verification.VerificationExpiredException;
 import edu.xtu.bbs.verification.VerificationRequestNotFoundException;
+import edu.xtu.bbs.verification.VerificationScopeIncorrectException;
 import edu.xtu.bbs.verification.VerificationTooFrequentException;
 import jakarta.validation.constraints.Email;
 import org.springframework.web.bind.annotation.PostMapping;

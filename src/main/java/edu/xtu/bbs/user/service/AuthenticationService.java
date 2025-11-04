@@ -174,7 +174,10 @@ public class AuthenticationService {
         User user = userService.getUserById(userId);
 
         if (verify(param, CHANGE_PWD, user.getEmail())) {
-            String encodedNewPassword = passwordEncoder.encode(newPassword);
+            final String encodedNewPassword = passwordEncoder.encode(newPassword);
+            if (encodedNewPassword == null || userId == null) {
+                return false;
+            }
             int updatedRows = userRepository.updatePasswordById(encodedNewPassword, userId);
             return updatedRows > 0;
         }
