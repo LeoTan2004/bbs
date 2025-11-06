@@ -31,3 +31,7 @@ oss:
     max-size: 5MB
     prefix: "/avatars"
     expired-after: 30s
+security:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expired-time: 2h

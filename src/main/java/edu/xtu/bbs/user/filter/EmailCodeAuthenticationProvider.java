@@ -1,5 +1,6 @@
 package edu.xtu.bbs.user.filter;
 
+import edu.xtu.bbs.user.exception.EmailNotFoundException;
 import edu.xtu.bbs.user.repo.UserRepository;
 import edu.xtu.bbs.verification.*;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -7,6 +8,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -31,7 +33,7 @@ public class EmailCodeAuthenticationProvider implements AuthenticationProvider {
                     throw new BadCredentialsException("code was not correct");
                 }
                 final UserDetails user = userRepository.findByEmail(verificationParam.principle()).orElseThrow(
-                        () -> new BadCredentialsException("Cannot find user with email: " + verificationParam.principle())
+                        () -> new UsernameNotFoundException("Could not find user", new EmailNotFoundException(verificationParam.principle(), "Cannot find user with email"))
                 );
                 final EmailCodeAuthenticationToken authenticationToken = new EmailCodeAuthenticationToken(user.getUsername(), user.getAuthorities());
                 authenticationToken.setDetails(user);
