@@ -17,12 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.Collections;
+import org.springframework.util.PathMatcher;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -32,7 +28,7 @@ import static org.mockito.Mockito.*;
  * Tests all critical paths and edge cases for the JWT authorization logic
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("JWT Authorization Filter Tests")
+@DisplayName("JWT Authorization Filter Comprehensive Tests")
 class JwtAuthorizationFilterComprehensiveTest {
 
     @Mock
@@ -42,11 +38,13 @@ class JwtAuthorizationFilterComprehensiveTest {
     private UserService userService;
 
     @Mock
+    private PathMatcher pathMatcher;
+
+    @Mock
     private HttpServletRequest request;
 
     @Mock
     private HttpServletResponse response;
-
 
     @Mock
     private FilterChain filterChain;
@@ -63,11 +61,11 @@ class JwtAuthorizationFilterComprehensiveTest {
     }
 
     @Nested
-    @DisplayName("Path Skipping Tests")
-    class PathSkippingTests {
+    @DisplayName("Path Filtering Tests")
+    class PathFilteringTests {
 
         /**
-         * Test that all authentication paths are properly skipped
+         * Test that shouldNotFilter method correctly identifies auth paths
          */
         @ParameterizedTest
         @ValueSource(strings = {
@@ -78,28 +76,22 @@ class JwtAuthorizationFilterComprehensiveTest {
                 "/auth/reset-password",
                 "/auth/verify-email"
         })
-        @DisplayName("Should skip all /auth/** paths")
-        void shouldSkipAllAuthPaths(String path) throws Exception {
-            when(request.getRequestURI()).thenReturn(path);
+        @DisplayName("Should not filter /auth/** paths")
+        void shouldNotFilterAuthPaths(String path) {
+            when(request.getServletPath()).thenReturn(path);
+            when(pathMatcher.match("/auth/**", path)).thenReturn(true);
 
-            filter.doFilterInternal(request, response, filterChain);
-
-            verify(filterChain).doFilter(request, response);
-            verifyNoInteractions(jwtTokenService);
-            verifyNoInteractions(userService);
-            assertNull(SecurityContextHolder.getContext().getAuthentication());
+            assertTrue(filter.shouldNotFilter(request));
         }
 
         @Test
-        @DisplayName("Should process non-auth paths")
-        void shouldProcessNonAuthPaths() throws Exception {
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
-            when(request.getHeader("Authorization")).thenReturn(null);
+        @DisplayName("Should filter non-auth paths")
+        void shouldFilterNonAuthPaths() {
+            String path = "/api/user/profile";
+            when(request.getServletPath()).thenReturn(path);
+            when(pathMatcher.match("/auth/**", path)).thenReturn(false);
 
-            filter.doFilterInternal(request, response, filterChain);
-
-            verify(filterChain).doFilter(request, response);
-            verifyNoInteractions(jwtTokenService);
+            assertFalse(filter.shouldNotFilter(request));
         }
     }
 
@@ -110,7 +102,6 @@ class JwtAuthorizationFilterComprehensiveTest {
         @Test
         @DisplayName("Should continue when no Authorization header")
         void shouldContinueWhenNoAuthHeader() throws Exception {
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
             when(request.getHeader("Authorization")).thenReturn(null);
 
             filter.doFilterInternal(request, response, filterChain);
@@ -131,7 +122,6 @@ class JwtAuthorizationFilterComprehensiveTest {
         })
         @DisplayName("Should ignore non-Bearer or invalid authorization headers")
         void shouldIgnoreInvalidAuthHeaders(String authHeader) throws Exception {
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
             when(request.getHeader("Authorization")).thenReturn(authHeader);
 
             filter.doFilterInternal(request, response, filterChain);
@@ -139,20 +129,6 @@ class JwtAuthorizationFilterComprehensiveTest {
             verify(filterChain).doFilter(request, response);
             verifyNoInteractions(jwtTokenService);
             assertNull(SecurityContextHolder.getContext().getAuthentication());
-        }
-
-        @Test
-        @DisplayName("Should process valid Bearer token format")
-        void shouldProcessValidBearerToken() throws Exception {
-            String token = "valid.jwt.token";
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-            when(jwtTokenService.decode(token)).thenThrow(new RuntimeException("Token processing"));
-
-            filter.doFilterInternal(request, response, filterChain);
-
-            verify(filterChain).doFilter(request, response);
-            verify(jwtTokenService).decode(token);
         }
     }
 
@@ -166,36 +142,72 @@ class JwtAuthorizationFilterComprehensiveTest {
             String token = "valid.jwt.token";
             String username = "testuser";
 
-            UserDetails userDetails = new User(username, "password",
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
-
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
             when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
             when(jwtTokenService.decode(token)).thenReturn(claims);
+            when(jwtTokenService.isValidToken(claims)).thenReturn(true);
             when(claims.getSubject()).thenReturn(username);
-            when(userService.findByUsername(username)).thenReturn(userDetails);
-            when(jwtTokenService.isValidToken(token)).thenReturn(true);
+            when(userService.existsByUsername(username)).thenReturn(true);
 
             filter.doFilterInternal(request, response, filterChain);
 
             verify(filterChain).doFilter(request, response);
             verify(jwtTokenService).decode(token);
-            verify(jwtTokenService).isValidToken(token);
-            verify(userService).findByUsername(username);
+            verify(jwtTokenService).isValidToken(claims);
+            verify(userService).existsByUsername(username);
 
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             assertNotNull(auth);
-            assertEquals(username, auth.getName());
-            assertTrue(auth.isAuthenticated());
-            assertFalse(auth.getAuthorities().isEmpty());
+            assertEquals(username, auth.getPrincipal());
+            assertNull(auth.getCredentials());
+            // The authorities will be an empty collection, not null
+            assertTrue(auth.getAuthorities() == null || auth.getAuthorities().isEmpty());
         }
 
         @Test
-        @DisplayName("Should handle JWT parsing exception")
+        @DisplayName("Should return 401 when token is invalid")
+        void shouldReturn401WhenTokenInvalid() throws Exception {
+            String token = "invalid.token";
+
+            when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+            when(jwtTokenService.decode(token)).thenReturn(claims);
+            when(jwtTokenService.isValidToken(claims)).thenReturn(false);
+
+            filter.doFilterInternal(request, response, filterChain);
+
+            verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            verify(filterChain, never()).doFilter(request, response);
+            verify(jwtTokenService).decode(token);
+            verify(jwtTokenService).isValidToken(claims);
+            assertNull(SecurityContextHolder.getContext().getAuthentication());
+        }
+
+        @Test
+        @DisplayName("Should return 401 when user not found")
+        void shouldReturn401WhenUserNotFound() throws Exception {
+            String token = "valid.jwt.token";
+            String username = "nonexistentuser";
+
+            when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+            when(jwtTokenService.decode(token)).thenReturn(claims);
+            when(jwtTokenService.isValidToken(claims)).thenReturn(true);
+            when(claims.getSubject()).thenReturn(username);
+            when(userService.existsByUsername(username)).thenReturn(false);
+
+            filter.doFilterInternal(request, response, filterChain);
+
+            verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            verify(filterChain, never()).doFilter(request, response);
+            verify(jwtTokenService).decode(token);
+            verify(jwtTokenService).isValidToken(claims);
+            verify(userService).existsByUsername(username);
+            assertNull(SecurityContextHolder.getContext().getAuthentication());
+        }
+
+        @Test
+        @DisplayName("Should handle JWT parsing exception and continue")
         void shouldHandleJwtParsingException() throws Exception {
             String invalidToken = "invalid.jwt.token";
 
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
             when(request.getHeader("Authorization")).thenReturn("Bearer " + invalidToken);
             when(jwtTokenService.decode(invalidToken)).thenThrow(new RuntimeException("Invalid JWT"));
 
@@ -207,65 +219,20 @@ class JwtAuthorizationFilterComprehensiveTest {
         }
 
         @Test
-        @DisplayName("Should handle user not found exception")
-        void shouldHandleUserNotFoundException() throws Exception {
-            String token = "valid.jwt.token";
-            String username = "nonexistentuser";
+        @DisplayName("Should continue when JWT has empty or null username")
+        void shouldContinueWhenEmptyUsername() throws Exception {
+            String token = "token.with.empty.subject";
 
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
             when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
             when(jwtTokenService.decode(token)).thenReturn(claims);
-            when(claims.getSubject()).thenReturn(username);
-            when(userService.findByUsername(username)).thenThrow(new RuntimeException("User not found"));
+            when(jwtTokenService.isValidToken(claims)).thenReturn(true);
+            when(claims.getSubject()).thenReturn("");
 
             filter.doFilterInternal(request, response, filterChain);
 
             verify(filterChain).doFilter(request, response);
             verify(jwtTokenService).decode(token);
-            verify(userService).findByUsername(username);
-            assertNull(SecurityContextHolder.getContext().getAuthentication());
-        }
-
-        @Test
-        @DisplayName("Should handle invalid token validation")
-        void shouldHandleInvalidTokenValidation() throws Exception {
-            String token = "parsed.but.invalid.token";
-            String username = "testuser";
-
-            UserDetails userDetails = new User(username, "password",
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
-
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-            when(jwtTokenService.decode(token)).thenReturn(claims);
-            when(claims.getSubject()).thenReturn(username);
-            when(userService.findByUsername(username)).thenReturn(userDetails);
-            when(jwtTokenService.isValidToken(token)).thenReturn(false); // Token validation fails
-
-            filter.doFilterInternal(request, response, filterChain);
-
-            verify(filterChain).doFilter(request, response);
-            verify(jwtTokenService).decode(token);
-            verify(jwtTokenService).isValidToken(token);
-            verify(userService).findByUsername(username);
-            // Authentication should not be set due to invalid token
-            assertNull(SecurityContextHolder.getContext().getAuthentication());
-        }
-
-        @Test
-        @DisplayName("Should handle null subject in JWT claims")
-        void shouldHandleNullSubjectInClaims() throws Exception {
-            String token = "token.with.null.subject";
-
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-            when(jwtTokenService.decode(token)).thenReturn(claims);
-            when(claims.getSubject()).thenReturn(null); // Null subject
-
-            filter.doFilterInternal(request, response, filterChain);
-
-            verify(filterChain).doFilter(request, response);
-            verify(jwtTokenService).decode(token);
+            verify(jwtTokenService).isValidToken(claims);
             verify(claims).getSubject();
             verifyNoInteractions(userService);
             assertNull(SecurityContextHolder.getContext().getAuthentication());
@@ -277,105 +244,21 @@ class JwtAuthorizationFilterComprehensiveTest {
     class SecurityContextManagementTests {
 
         @Test
-        @DisplayName("Should not override existing authentication")
-        void shouldNotOverrideExistingAuthentication() throws Exception {
+        @DisplayName("Should not process JWT when user is already authenticated")
+        void shouldNotProcessJwtWhenAlreadyAuthenticated() throws Exception {
             Authentication existing = mock(Authentication.class);
             SecurityContextHolder.getContext().setAuthentication(existing);
 
             String token = "some.token";
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
             when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-            when(jwtTokenService.decode(token)).thenReturn(claims);
-            when(claims.getSubject()).thenReturn("testuser");
 
             filter.doFilterInternal(request, response, filterChain);
 
             verify(filterChain).doFilter(request, response);
-            verify(jwtTokenService).decode(token);
-            verify(claims).getSubject();
-            // Should not interact with user service since authentication already exists
+            // Should not interact with JWT service since authentication already exists
+            verifyNoInteractions(jwtTokenService);
             verifyNoInteractions(userService);
             assertEquals(existing, SecurityContextHolder.getContext().getAuthentication());
-        }
-
-        @Test
-        @DisplayName("Should clear security context on exception")
-        void shouldClearSecurityContextOnException() throws Exception {
-            // Pre-set some authentication to test clearing
-            Authentication existing = mock(Authentication.class);
-            SecurityContextHolder.getContext().setAuthentication(existing);
-
-            String token = "problematic.token";
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-            when(jwtTokenService.decode(token)).thenThrow(new RuntimeException("JWT error"));
-
-            filter.doFilterInternal(request, response, filterChain);
-
-            verify(filterChain).doFilter(request, response);
-            // Security context should be cleared due to exception
-            assertNull(SecurityContextHolder.getContext().getAuthentication());
-        }
-    }
-
-    @Nested
-    @DisplayName("Edge Cases and Error Handling")
-    class EdgeCasesAndErrorHandlingTests {
-
-        @Test
-        @DisplayName("Should handle empty subject string")
-        void shouldHandleEmptySubjectString() throws Exception {
-            String token = "token.with.empty.subject";
-
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-            when(jwtTokenService.decode(token)).thenReturn(claims);
-            when(claims.getSubject()).thenReturn(""); // Empty subject
-
-            filter.doFilterInternal(request, response, filterChain);
-
-            verify(filterChain).doFilter(request, response);
-            verify(jwtTokenService).decode(token);
-            verify(claims).getSubject();
-            verifyNoInteractions(userService);
-            assertNull(SecurityContextHolder.getContext().getAuthentication());
-        }
-
-        @Test
-        @DisplayName("Should handle whitespace-only subject")
-        void shouldHandleWhitespaceOnlySubject() throws Exception {
-            String token = jwtTokenService.encode("   "); // Token with whitespace subject
-
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-            when(jwtTokenService.decode(token)).thenReturn(claims);
-            when(claims.getSubject()).thenReturn("   "); // Whitespace-only subject
-
-            filter.doFilterInternal(request, response, filterChain);
-
-            verify(filterChain).doFilter(request, response);
-            verify(jwtTokenService, never()).decode(token);
-            verifyNoInteractions(claims);
-            // Should still try to find user since subject is not null (though it's whitespace)
-            verifyNoInteractions(userService);
-            assertNull(SecurityContextHolder.getContext().getAuthentication());
-        }
-
-        @Test
-        @DisplayName("Should handle JWT service returning null claims")
-        void shouldHandleNullClaims() throws Exception {
-            String token = "token.with.null.claims";
-
-            when(request.getRequestURI()).thenReturn("/api/user/profile");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-            when(jwtTokenService.decode(token)).thenReturn(null); // Null claims
-
-            filter.doFilterInternal(request, response, filterChain);
-
-            verify(filterChain).doFilter(request, response);
-            verify(jwtTokenService).decode(token);
-            // Should handle null claims gracefully
-            assertNull(SecurityContextHolder.getContext().getAuthentication());
         }
     }
 }

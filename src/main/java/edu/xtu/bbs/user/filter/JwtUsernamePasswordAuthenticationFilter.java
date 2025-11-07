@@ -7,6 +7,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,9 @@ public class JwtUsernamePasswordAuthenticationFilter extends AbstractJwtAuthenti
 
     @Override
     protected String getUsername(Authentication authResult) {
+        if (authResult.getPrincipal() instanceof UserDetails principle) {
+            return principle.getUsername();
+        }
         return authResult.getPrincipal().toString();
     }
 

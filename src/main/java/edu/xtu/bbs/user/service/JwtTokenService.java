@@ -52,7 +52,7 @@ public class JwtTokenService {
                 .compact();
     }
 
-    public boolean isValidToken(String jwt) {
-        return decode(jwt).getExpiration().after(new Date());
+    public boolean isValidToken(Claims claims) {
+        return claims.getExpiration().after(new Date());
     }
 }

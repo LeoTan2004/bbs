@@ -52,15 +52,22 @@ public class SecurityConfig {
 
         http.csrf(AbstractHttpConfigurer::disable);
 
+
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/auth/**").permitAll()
+                .anyRequest().authenticated()
+        ).sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        ).authenticationManager(manager);
         // Disable default login forms
-        http.formLogin(AbstractHttpConfigurer::disable);
-        http.httpBasic(AbstractHttpConfigurer::disable);
+        http.formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable);
 
         /*
         Spring Security Filter Chain Execution Order:
-        
+
         request → [Spring Security Filter Chain] → controller
-        
+
         Filter Chain Order:
         1. SecurityContextPersistenceFilter (Manage SecurityContext)
         2. LogoutFilter (Handle logout requests)
@@ -69,20 +76,20 @@ public class SecurityConfig {
            ├─ No Authorization header/Non-Bearer → Continue to next filter
            ├─ Valid JWT → Set authentication info, subsequent auth filters may be skipped
            └─ Invalid JWT → Clear SecurityContext, continue to next filter
-        
+
         4. JwtEmailCodeAuthenticationFilter ← Custom email code authentication
            ├─ Path matches: POST /auth/login-with-code → Process authentication
            └─ No match → Continue to next filter
-        
+
         5. JwtUsernamePasswordAuthenticationFilter ← Custom username/password authentication
            ├─ Path matches: POST /auth/login → Process authentication
            └─ No match → Continue to next filter
-        
+
         6. AnonymousAuthenticationFilter (Handle anonymous users)
         7. ExceptionTranslationFilter (Exception handling)
         8. FilterSecurityInterceptor (Authorization checks)
-        
-        Notes: 
+
+        Notes:
         - All custom filters are part of the Spring Security Filter Chain
         - JWT authorization filter skips /auth/** paths to avoid interfering with login flow
         - After successful authentication, subsequent authentication filters are usually skipped
@@ -90,18 +97,9 @@ public class SecurityConfig {
 
         // Add custom filters to the filter chain
         // JWT authorization filter should be before authentication filters but after security context establishment
-        http.addFilterBefore(jwtAuthorizationFilter, BasicAuthenticationFilter.class);
-
-        // Add custom authentication filters
-        http.addFilterAfter(jwtEmailCodeAuthenticationFilter, jwtAuthorizationFilter.getClass());
-        http.addFilterAfter(jwtUsernamePasswordAuthenticationFilter, jwtEmailCodeAuthenticationFilter.getClass());
-
-        http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**").permitAll()
-                .anyRequest().authenticated()
-        ).sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        ).authenticationManager(manager);
+        http.addFilterBefore(jwtAuthorizationFilter, BasicAuthenticationFilter.class)
+                .addFilterAfter(jwtEmailCodeAuthenticationFilter, JwtAuthorizationFilter.class)
+                .addFilterAfter(jwtUsernamePasswordAuthenticationFilter, JwtAuthorizationFilter.class);
         return http.build();
     }
 }
