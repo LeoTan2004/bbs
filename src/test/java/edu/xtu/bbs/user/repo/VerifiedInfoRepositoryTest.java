@@ -5,6 +5,7 @@ import edu.xtu.bbs.user.model.Status;
 import edu.xtu.bbs.user.model.User;
 import edu.xtu.bbs.user.model.VerifiedInfo;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -101,6 +102,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return page of verified info when institution exists")
     void testFindByInstitution_ExistingInstitution_ShouldReturnPageOfVerifiedInfo() {
         // Given
         String institution = "湘潭大学";
@@ -120,6 +122,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty page when institution does not exist")
     void testFindByInstitution_NonExistingInstitution_ShouldReturnEmptyPage() {
         // Given
         String institution = "清华大学";
@@ -135,6 +138,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should respect page size when pagination is used")
     void testFindByInstitution_WithPagination_ShouldRespectPageSize() {
         // Given
         String institution = "湘潭大学";
@@ -152,6 +156,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return verified info when user exists")
     void testFindByUser_ExistingUser_ShouldReturnVerifiedInfo() {
         // When
         Optional<VerifiedInfo> result = verifiedInfoRepository.findByUser(testUser1);
@@ -166,6 +171,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when user does not exist")
     void testFindByUser_NonExistingUser_ShouldReturnEmpty() {
         // Given
         User nonExistingUser = new User();
@@ -179,6 +185,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when user has no verification")
     void testFindByUser_UserWithoutVerification_ShouldReturnEmpty() {
         // Given
         User userWithoutVerification = new User();
@@ -197,6 +204,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should persist successfully when saving new verified info")
     void testSave_NewVerifiedInfo_ShouldPersistSuccessfully() {
         // Given
         User newUser = new User();
@@ -234,6 +242,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return verified info when ID exists")
     void testFindById_ExistingId_ShouldReturnVerifiedInfo() {
         // When
         Optional<VerifiedInfo> result = verifiedInfoRepository.findById(verifiedInfo1.getId());
@@ -245,6 +254,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when ID does not exist")
     void testFindById_NonExistingId_ShouldReturnEmpty() {
         // When
         Optional<VerifiedInfo> result = verifiedInfoRepository.findById(99999);
@@ -254,6 +264,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should remove from database when deleting existing verified info")
     void testDelete_ExistingVerifiedInfo_ShouldRemoveFromDatabase() {
         // Given
         Integer verifiedInfoId = verifiedInfo1.getId();
@@ -268,6 +279,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return true when ID exists")
     void testExistsById_ExistingId_ShouldReturnTrue() {
         // When
         boolean exists = verifiedInfoRepository.existsById(verifiedInfo1.getId());
@@ -277,6 +289,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return false when ID does not exist")
     void testExistsById_NonExistingId_ShouldReturnFalse() {
         // When
         boolean exists = verifiedInfoRepository.existsById(99999);
@@ -286,6 +299,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return correct count when counting all records")
     void testCount_ShouldReturnCorrectCount() {
         // When
         long count = verifiedInfoRepository.count();
@@ -295,6 +309,7 @@ public class VerifiedInfoRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return all verified info when finding all records")
     void testFindAll_ShouldReturnAllVerifiedInfo() {
         // When
         Iterable<VerifiedInfo> result = verifiedInfoRepository.findAll();

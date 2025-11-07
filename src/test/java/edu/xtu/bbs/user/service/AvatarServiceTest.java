@@ -13,6 +13,7 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.util.unit.DataSize;
@@ -53,12 +54,14 @@ class AvatarServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate avatar URL with correct suffix")
     void testGenerateAvatarUrl() {
         final String s = avatarService.generateAvatarUrl("12345");
         assertTrue(s.endsWith("avatar-12345"));
     }
 
     @Test
+    @DisplayName("Should generate avatar upload URL successfully when environment is configured")
     @EnabledIfEnvironmentVariable(named = "TENCENT_SECRET_KEY", matches = "^(?!.*key).*")
     void testGenerateAvatarUploadUrl_Success() throws IOException, IllegalContentTypeException {
         // Generate a simple image file
@@ -99,6 +102,7 @@ class AvatarServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when content type is illegal")
     void testGenerateAvatarUploadUrl_IllegalContentType() {
         final String principle = "12345";
         final String contentType = "application/json";
@@ -109,6 +113,7 @@ class AvatarServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when file size exceeds maximum limit")
     void testGenerateAvatarUploadUrl_ExceedMaxSize() {
         final String principle = "12345";
         final String contentType = "image/png";

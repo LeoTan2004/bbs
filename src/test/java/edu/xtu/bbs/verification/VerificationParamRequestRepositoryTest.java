@@ -1,6 +1,7 @@
 package edu.xtu.bbs.verification;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -64,6 +65,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return verification request when valid email and token are provided")
     void findByEmailAndToken_WhenValidEmailAndTokenProvided_ShouldReturnRequest() {
         // Given
         String email = "user1@example.com";
@@ -82,6 +84,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return correct verification request for second user")
     void findByEmailAndToken_WhenValidEmailAndTokenProvidedForSecondUser_ShouldReturnCorrectRequest() {
         // Given
         String email = "user2@example.com";
@@ -100,6 +103,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return verified request when verification is already completed")
     void findByEmailAndToken_WhenValidEmailAndTokenProvidedForVerifiedRequest_ShouldReturnVerifiedRequest() {
         // Given
         String email = "user1@example.com";
@@ -118,6 +122,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when email does not exist")
     void findByEmailAndToken_WhenNonExistentEmailProvided_ShouldReturnEmpty() {
         // Given
         String email = "nonexistent@example.com";
@@ -131,6 +136,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when token does not exist")
     void findByEmailAndToken_WhenNonExistentTokenProvided_ShouldReturnEmpty() {
         // Given
         String email = "user1@example.com";
@@ -144,6 +150,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when email is valid but token belongs to another user")
     void findByEmailAndToken_WhenValidEmailButWrongToken_ShouldReturnEmpty() {
         // Given
         String email = "user1@example.com";
@@ -157,6 +164,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when token is valid but email is wrong")
     void findByEmailAndToken_WhenValidTokenButWrongEmail_ShouldReturnEmpty() {
         // Given
         String email = "user2@example.com";
@@ -170,6 +178,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when email is null")
     void findByEmailAndToken_WhenNullEmailProvided_ShouldReturnEmpty() {
         // Given
         String email = null;
@@ -183,6 +192,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when token is null")
     void findByEmailAndToken_WhenNullTokenProvided_ShouldReturnEmpty() {
         // Given
         String email = "user1@example.com";
@@ -196,6 +206,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when email is empty string")
     void findByEmailAndToken_WhenEmptyEmailProvided_ShouldReturnEmpty() {
         // Given
         String email = "";
@@ -209,6 +220,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when token is empty string")
     void findByEmailAndToken_WhenEmptyTokenProvided_ShouldReturnEmpty() {
         // Given
         String email = "user1@example.com";
@@ -222,6 +234,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when email has different case (case-sensitive matching)")
     void findByEmailAndToken_WhenCaseInsensitiveEmailProvided_ShouldReturnEmptyForExactMatch() {
         // Given - Spring Data JPA is typically case-sensitive for string matching
         String email = "USER1@EXAMPLE.COM"; // Different case
@@ -235,6 +248,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should persist new verification request successfully")
     void save_WhenValidEmailVerificationRequestProvided_ShouldPersistSuccessfully() {
         // Given
         VerificationRequest newRequest = new VerificationRequest();
@@ -263,6 +277,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should find verification request by ID")
     void findById_WhenValidIdProvided_ShouldReturnRequest() {
         // Given - Find a request to get its ID
         Optional<VerificationRequest> existingRequest = verificationRequestRepository.findByPrincipleAndToken("user1@example.com", "token123456");
@@ -285,6 +300,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should successfully remove verification request from database")
     void delete_WhenValidRequestProvided_ShouldRemoveFromDatabase() {
         // Given
         String email = "user1@example.com";
@@ -321,6 +337,7 @@ public class VerificationParamRequestRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return correct count of verification records")
     void count_ShouldReturnCorrectNumberOfRecords() {
         // When
         long count = verificationRequestRepository.count();

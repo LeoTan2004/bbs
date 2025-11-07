@@ -3,6 +3,7 @@ package edu.xtu.bbs.user.config;
 import edu.xtu.bbs.user.service.JwtTokenService;
 import edu.xtu.bbs.user.service.UserService;
 import edu.xtu.bbs.verification.VerificationService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -32,16 +33,14 @@ class SecurityConfigBasicTest {
      * This is the most basic test to ensure Security configuration has no syntax errors or dependency issues
      */
     @Test
+    @DisplayName("Should load Spring context successfully")
     void contextLoads() {
         // If Spring Context can start, it means the basic configuration is correct
         assertTrue(true);
     }
 
-    /**
-     * Basic filter configuration validation
-     * Ensure all necessary beans can be created correctly
-     */
     @Test
+    @DisplayName("Should validate security configuration successfully")
     void securityConfigurationIsValid() {
         // If the test can run to this point, it means SecurityConfig configuration is valid
         assertTrue(true);

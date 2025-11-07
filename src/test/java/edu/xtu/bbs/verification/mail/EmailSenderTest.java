@@ -1,6 +1,7 @@
 package edu.xtu.bbs.verification.mail;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ class EmailSenderTest {
     private EmailSender emailSender;
 
     @Test
+    @DisplayName("Should send verification code email successfully")
     void sendEmail() {
         final boolean b = emailSender.sendCode(testMail, "123456");
         Assertions.assertTrue(b);

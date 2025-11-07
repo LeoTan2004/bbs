@@ -7,6 +7,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -60,6 +61,7 @@ class JwtAuthorizationFilterTest {
      * Test that filter skips authentication paths
      */
     @Test
+    @DisplayName("Should skip authentication for auth paths")
     void shouldSkipAuthPaths() throws Exception {
         when(request.getRequestURI()).thenReturn("/auth/login");
 
@@ -73,6 +75,7 @@ class JwtAuthorizationFilterTest {
      * Test handling when there is no Authorization header
      */
     @Test
+    @DisplayName("Should continue processing when no Authorization header is present")
     void shouldContinueWhenNoAuthHeader() throws Exception {
         when(request.getRequestURI()).thenReturn("/api/user/profile");
         when(request.getHeader("Authorization")).thenReturn(null);
@@ -88,6 +91,7 @@ class JwtAuthorizationFilterTest {
      * Test handling of non-Bearer tokens
      */
     @Test
+    @DisplayName("Should ignore non-Bearer tokens")
     void shouldIgnoreNonBearerToken() throws Exception {
         when(request.getRequestURI()).thenReturn("/api/user/profile");
         when(request.getHeader("Authorization")).thenReturn("Basic dGVzdA==");
@@ -102,6 +106,7 @@ class JwtAuthorizationFilterTest {
      * Test processing of valid JWT tokens
      */
     @Test
+    @DisplayName("Should process valid JWT token and set authentication")
     void shouldProcessValidJwtToken() throws Exception {
         String token = "valid.jwt.token";
         String username = "testuser";
@@ -132,6 +137,7 @@ class JwtAuthorizationFilterTest {
      * Test handling of JWT parsing exceptions
      */
     @Test
+    @DisplayName("Should handle JWT parsing exceptions gracefully")
     void shouldHandleJwtException() throws Exception {
         String invalidToken = "invalid.token";
 
@@ -150,6 +156,7 @@ class JwtAuthorizationFilterTest {
      * Note: Filter will still parse JWT, but won't override existing authentication
      */
     @Test
+    @DisplayName("Should not override existing authentication")
     void shouldNotOverrideExistingAuth() throws Exception {
         Authentication existing = mock(Authentication.class);
         SecurityContextHolder.getContext().setAuthentication(existing);

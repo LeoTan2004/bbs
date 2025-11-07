@@ -1,6 +1,7 @@
 package edu.xtu.bbs.verification;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,7 +34,7 @@ class VerificationServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 设置配置属性
+        // Set configuration properties
         ReflectionTestUtils.setField(verificationService, "codeLength", 6);
         ReflectionTestUtils.setField(verificationService, "validDuration", Duration.ofMinutes(3));
         ReflectionTestUtils.setField(verificationService, "verifyDuration", Duration.ofSeconds(1));
@@ -41,8 +42,9 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate a 6-digit numeric code")
     void testGenerateCode() {
-        // 使用反射测试protected方法
+        // Test protected method using reflection
         String code = ReflectionTestUtils.invokeMethod(verificationService, "generateCode");
 
         assertNotNull(code);
@@ -51,20 +53,22 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should generate unique UUID tokens")
     void testGenerateToken() {
-        // 使用反射测试protected方法
+        // Test protected method using reflection
         String token1 = ReflectionTestUtils.invokeMethod(verificationService, "generateToken");
         String token2 = ReflectionTestUtils.invokeMethod(verificationService, "generateToken");
 
         assertNotNull(token1);
         assertNotNull(token2);
         assertNotEquals(token1, token2);
-        // UUID格式验证
+        // UUID format validation
         assertDoesNotThrow(() -> UUID.fromString(token1));
         assertDoesNotThrow(() -> UUID.fromString(token2));
     }
 
     @Test
+    @DisplayName("Should send code successfully and return token")
     void testSendCode_Success() {
         // Arrange
         when(verificationSender.sendCode(eq(testPrincipal), anyString())).thenReturn(true);
@@ -94,6 +98,7 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should return empty string when send fails")
     void testSendCode_SendFailure() {
         // Arrange
         when(verificationSender.sendCode(eq(testPrincipal), anyString())).thenReturn(false);
@@ -109,6 +114,7 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should verify code successfully with correct credentials")
     void testVerifyCode_Success() throws Exception {
         // Arrange
         VerificationRequest request = createTestVerificationRequest();
@@ -138,6 +144,7 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should fail verification with wrong code")
     void testVerifyCode_WrongCode() throws Exception {
         // Arrange
         VerificationRequest request = createTestVerificationRequest();
@@ -167,6 +174,7 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when verification request not found")
     void testVerifyCode_RequestNotFound() {
         // Arrange
         VerificationParam param = new VerificationParam(testPrincipal, testToken, testAction, testCode);
@@ -184,11 +192,12 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when verification code is expired")
     void testVerifyCode_Expired() {
         // Arrange
         VerificationRequest request = createTestVerificationRequest();
         request.setCredential(testCode);
-        request.setExpiresAt(Instant.now().minusSeconds(10)); // 过期
+        request.setExpiresAt(Instant.now().minusSeconds(10)); // Expired
         request.setStatus(VerificationStatus.Pending);
         request.setValidCount(0);
 
@@ -207,12 +216,13 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when request is already verified")
     void testVerifyCode_AlreadyVerified() {
         // Arrange
         VerificationRequest request = createTestVerificationRequest();
         request.setCredential(testCode);
         request.setExpiresAt(Instant.now().plusSeconds(300));
-        request.setStatus(VerificationStatus.Verified); // 已验证
+        request.setStatus(VerificationStatus.Verified); // Already verified
         request.setValidCount(0);
 
         VerificationParam param = new VerificationParam(testPrincipal, testToken, testAction, testCode);
@@ -230,6 +240,7 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when verification attempts are too frequent by time")
     void testVerifyCode_TooFrequent_ByTime() {
         // Arrange
         VerificationRequest request = createTestVerificationRequest();
@@ -237,7 +248,7 @@ class VerificationServiceTest {
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
         request.setValidCount(0);
-        request.setLastValidAt(Instant.now()); // 刚刚验证过
+        request.setLastValidAt(Instant.now()); // Just verified
 
         VerificationParam param = new VerificationParam(testPrincipal, testToken, testAction, testCode);
 
@@ -254,14 +265,15 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when verification attempts reach maximum count")
     void testVerifyCode_TooFrequent_ByCount() {
         // Arrange
         VerificationRequest request = createTestVerificationRequest();
         request.setCredential(testCode);
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
-        request.setValidCount(5); // 达到最大次数
-        request.setLastValidAt(Instant.now().minusSeconds(2)); // 时间已过
+        request.setValidCount(5); // Reached maximum count
+        request.setLastValidAt(Instant.now().minusSeconds(2)); // Time has passed
 
         VerificationParam param = new VerificationParam(testPrincipal, testToken, testAction, testCode);
 
@@ -278,13 +290,14 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should handle null valid count properly")
     void testVerifyCode_NullValidCount() throws Exception {
-        // Arrange - 测试 validCount 为 null 的情况
+        // Arrange - Test when validCount is null
         VerificationRequest request = createTestVerificationRequest();
         request.setCredential(testCode);
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
-        request.setValidCount(null); // null 值
+        request.setValidCount(null); // null value
         request.setLastValidAt(null);
 
         VerificationParam param = new VerificationParam(testPrincipal, testToken, testAction, testCode);
@@ -299,7 +312,7 @@ class VerificationServiceTest {
         // Assert
         assertTrue(result);
         assertEquals(VerificationStatus.Verified, request.getStatus());
-        assertEquals(1, request.getValidCount()); // 从 null 变为 1
+        assertEquals(1, request.getValidCount()); // Changed from null to 1
         assertNotNull(request.getLastValidAt());
 
         verify(verificationRequestRepository).findByPrincipleAndToken(testPrincipal, testToken);
@@ -307,14 +320,15 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should handle null last valid time properly")
     void testVerifyCode_NullLastValidAt() throws Exception {
-        // Arrange - 测试 lastValidAt 为 null 的情况（初次验证）
+        // Arrange - Test when lastValidAt is null (first verification)
         VerificationRequest request = createTestVerificationRequest();
         request.setCredential(testCode);
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
         request.setValidCount(2);
-        request.setLastValidAt(null); // null 值
+        request.setLastValidAt(null); // null value
 
         VerificationParam param = new VerificationParam(testPrincipal, testToken, testAction, testCode);
 
@@ -335,20 +349,21 @@ class VerificationServiceTest {
         verify(verificationRequestRepository).save(request);
     }
 
-    // 新增：测试 scope 校验相关的测试方法
+    // Additional scope validation test methods
 
     @Test
+    @DisplayName("Should fail verification when scope does not match")
     void testVerifyCode_WrongScope() throws Exception {
-        // Arrange - 测试 scope 不匹配的情况
+        // Arrange - Test when scope does not match
         VerificationRequest request = createTestVerificationRequest();
         request.setCredential(testCode);
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
         request.setValidCount(0);
         request.setLastValidAt(null);
-        request.setScope("register"); // 设置为 register
+        request.setScope("register"); // Set to register
 
-        // 创建一个 scope 不匹配的参数（传入 login）
+        // Create a param with mismatched scope (pass login)
         VerificationParam param = new VerificationParam(testPrincipal, testToken, "login", testCode);
 
         when(verificationRequestRepository.findByPrincipleAndToken(testPrincipal, testToken))
@@ -359,27 +374,28 @@ class VerificationServiceTest {
         boolean result = verificationService.verifyCode(param);
 
         // Assert
-        assertFalse(result); // scope 不匹配，验证应该失败
-        assertEquals(VerificationStatus.Pending, request.getStatus()); // 状态应该保持为 Pending
-        assertEquals(1, request.getValidCount()); // 验证次数应该增加
-        assertNotNull(request.getLastValidAt()); // 最后验证时间应该被更新
+        assertFalse(result); // Scope mismatch, verification should fail
+        assertEquals(VerificationStatus.Pending, request.getStatus()); // Status should remain Pending
+        assertEquals(1, request.getValidCount()); // Validation count should increase
+        assertNotNull(request.getLastValidAt()); // Last validation time should be updated
 
         verify(verificationRequestRepository).findByPrincipleAndToken(testPrincipal, testToken);
         verify(verificationRequestRepository).save(request);
     }
 
     @Test
+    @DisplayName("Should succeed verification when scope matches")
     void testVerifyCode_CorrectScope() throws Exception {
-        // Arrange - 测试 scope 匹配的情况
+        // Arrange - Test when scope matches
         VerificationRequest request = createTestVerificationRequest();
         request.setCredential(testCode);
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
         request.setValidCount(0);
         request.setLastValidAt(null);
-        request.setScope("register"); // 设置为 register
+        request.setScope("register"); // Set to register
 
-        // 创建一个 scope 匹配的参数
+        // Create a param with matching scope
         VerificationParam param = new VerificationParam(testPrincipal, testToken, "register", testCode);
 
         when(verificationRequestRepository.findByPrincipleAndToken(testPrincipal, testToken))
@@ -390,25 +406,26 @@ class VerificationServiceTest {
         boolean result = verificationService.verifyCode(param);
 
         // Assert
-        assertTrue(result); // scope 匹配且 credential 正确，验证应该成功
-        assertEquals(VerificationStatus.Verified, request.getStatus()); // 状态应该变为 Verified
-        assertEquals(1, request.getValidCount()); // 验证次数应该增加
-        assertNotNull(request.getLastValidAt()); // 最后验证时间应该被更新
+        assertTrue(result); // Scope matches and credential correct, verification should succeed
+        assertEquals(VerificationStatus.Verified, request.getStatus()); // Status should change to Verified
+        assertEquals(1, request.getValidCount()); // Validation count should increase
+        assertNotNull(request.getLastValidAt()); // Last validation time should be updated
 
         verify(verificationRequestRepository).findByPrincipleAndToken(testPrincipal, testToken);
         verify(verificationRequestRepository).save(request);
     }
 
     @Test
+    @DisplayName("Should fail verification when request scope is null")
     void testVerifyCode_NullScope() throws Exception {
-        // Arrange - 测试 request 中 scope 为 null 的情况
+        // Arrange - Test when request scope is null
         VerificationRequest request = createTestVerificationRequest();
         request.setCredential(testCode);
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
         request.setValidCount(0);
         request.setLastValidAt(null);
-        request.setScope(null); // 设置为 null
+        request.setScope(null); // Set to null
 
         VerificationParam param = new VerificationParam(testPrincipal, testToken, "register", testCode);
 
@@ -420,7 +437,7 @@ class VerificationServiceTest {
         boolean result = verificationService.verifyCode(param);
 
         // Assert
-        assertFalse(result); // scope 不匹配（null != "register"），验证应该失败
+        assertFalse(result); // Scope mismatch (null != "register"), verification should fail
         assertEquals(VerificationStatus.Pending, request.getStatus());
         assertEquals(1, request.getValidCount());
         assertNotNull(request.getLastValidAt());
@@ -430,15 +447,16 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should succeed verification when both scopes are empty")
     void testVerifyCode_EmptyScope() throws Exception {
-        // Arrange - 测试空字符串 scope 的情况
+        // Arrange - Test empty string scope
         VerificationRequest request = createTestVerificationRequest();
         request.setCredential(testCode);
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
         request.setValidCount(0);
         request.setLastValidAt(null);
-        request.setScope(""); // 设置为空字符串
+        request.setScope(""); // Set to empty string
 
         VerificationParam param = new VerificationParam(testPrincipal, testToken, "", testCode);
 
@@ -450,7 +468,7 @@ class VerificationServiceTest {
         boolean result = verificationService.verifyCode(param);
 
         // Assert
-        assertTrue(result); // 两个都是空字符串，应该匹配
+        assertTrue(result); // Both are empty strings, should match
         assertEquals(VerificationStatus.Verified, request.getStatus());
         assertEquals(1, request.getValidCount());
         assertNotNull(request.getLastValidAt());
@@ -460,17 +478,18 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should fail verification when credentials are correct but scope is wrong")
     void testVerifyCode_CorrectCredentialWrongScope() throws Exception {
-        // Arrange - 测试凭据正确但 scope 错误的情况
+        // Arrange - Test correct credentials but wrong scope
         VerificationRequest request = createTestVerificationRequest();
-        request.setCredential(testCode); // 正确的凭据
+        request.setCredential(testCode); // Correct credentials
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
         request.setValidCount(0);
         request.setLastValidAt(null);
-        request.setScope("password-reset"); // 设置为 password-reset
+        request.setScope("password-reset"); // Set to password-reset
 
-        // 传入正确的凭据但错误的 scope
+        // Pass correct credentials but wrong scope
         VerificationParam param = new VerificationParam(testPrincipal, testToken, "email-verification", testCode);
 
         when(verificationRequestRepository.findByPrincipleAndToken(testPrincipal, testToken))
@@ -481,7 +500,7 @@ class VerificationServiceTest {
         boolean result = verificationService.verifyCode(param);
 
         // Assert
-        assertFalse(result); // 即使凭据正确，scope 不匹配也应该失败
+        assertFalse(result); // Even with correct credentials, scope mismatch should fail
         assertEquals(VerificationStatus.Pending, request.getStatus());
         assertEquals(1, request.getValidCount());
         assertNotNull(request.getLastValidAt());
@@ -491,17 +510,18 @@ class VerificationServiceTest {
     }
 
     @Test
+    @DisplayName("Should fail verification when credentials are wrong but scope is correct")
     void testVerifyCode_WrongCredentialCorrectScope() throws Exception {
-        // Arrange - 测试凭据错误但 scope 正确的情况
+        // Arrange - Test wrong credentials but correct scope
         VerificationRequest request = createTestVerificationRequest();
-        request.setCredential(testCode); // 正确的凭据
+        request.setCredential(testCode); // Correct credentials
         request.setExpiresAt(Instant.now().plusSeconds(300));
         request.setStatus(VerificationStatus.Pending);
         request.setValidCount(0);
         request.setLastValidAt(null);
-        request.setScope("register"); // 设置为 register
+        request.setScope("register"); // Set to register
 
-        // 传入错误的凭据但正确的 scope
+        // Pass wrong credentials but correct scope
         VerificationParam param = new VerificationParam(testPrincipal, testToken, "register", "wrong-code");
 
         when(verificationRequestRepository.findByPrincipleAndToken(testPrincipal, testToken))
@@ -512,7 +532,7 @@ class VerificationServiceTest {
         boolean result = verificationService.verifyCode(param);
 
         // Assert
-        assertFalse(result); // 即使 scope 正确，凭据错误也应该失败
+        assertFalse(result); // Even with correct scope, wrong credentials should fail
         assertEquals(VerificationStatus.Pending, request.getStatus());
         assertEquals(1, request.getValidCount());
         assertNotNull(request.getLastValidAt());

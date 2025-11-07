@@ -2,6 +2,7 @@ package edu.xtu.bbs.user.filter;
 
 import edu.xtu.bbs.user.service.JwtTokenService;
 import edu.xtu.bbs.user.service.UserService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -29,18 +30,14 @@ class FilterConfigurationTest {
     @MockitoBean
     private JwtTokenService jwtTokenService;
 
-    /**
-     * Test that filter beans are correctly created and injected
-     */
     @Test
+    @DisplayName("Should create and inject filter beans successfully")
     void filterBeansAreCreated() {
         assertNotNull(jwtAuthorizationFilter);
     }
 
-    /**
-     * Parameterized test: verify various auth path formats
-     */
     @ParameterizedTest
+    @DisplayName("Should recognize various auth path formats correctly")
     @ValueSource(strings = {
             "/auth/login",
             "/auth/register",

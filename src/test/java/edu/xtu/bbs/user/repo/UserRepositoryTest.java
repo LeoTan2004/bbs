@@ -4,6 +4,7 @@ import edu.xtu.bbs.user.model.Role;
 import edu.xtu.bbs.user.model.Status;
 import edu.xtu.bbs.user.model.User;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -70,6 +71,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return user when email exists")
     void testFindByEmail_ExistingEmail_ShouldReturnUser() {
         // Given
         String email = "test1@example.com";
@@ -84,6 +86,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when email does not exist")
     void testFindByEmail_NonExistingEmail_ShouldReturnEmpty() {
         // Given
         String email = "nonexistent@example.com";
@@ -96,6 +99,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return user when username exists")
     void testFindByUsername_ExistingUsername_ShouldReturnUser() {
         // Given
         String username = "testuser2";
@@ -111,6 +115,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return empty when username does not exist")
     void testFindByUsername_NonExistingUsername_ShouldReturnEmpty() {
         // Given
         String username = "nonexistentuser";
@@ -123,6 +128,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update email when valid ID and email are provided")
     void testUpdateEmailById_ValidIdAndEmail_ShouldUpdateEmail() {
         // Given
         User newUser = new User();
@@ -147,6 +153,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should not update email when ID is invalid")
     void testUpdateEmailById_InvalidId_ShouldNotUpdate() {
         // Given
         Integer invalidId = 99999;
@@ -160,6 +167,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update password when valid ID and password are provided")
     void testUpdatePasswordById_ValidIdAndPassword_ShouldUpdatePassword() {
         // Given
         User newUser = new User();
@@ -184,6 +192,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should not update password when ID is invalid")
     void testUpdatePasswordById_InvalidId_ShouldNotUpdate() {
         // Given
         Integer invalidId = 99999;
@@ -197,6 +206,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update user profile when valid data is provided")
     void testUpdateProfileById_ValidData_ShouldUpdateProfile() {
         // Given
         User newUser = new User();
@@ -228,6 +238,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update profile with null values when provided")
     void testUpdateProfileById_NullValues_ShouldUpdateWithNulls() {
         // Given
         User newUser = new User();
@@ -255,6 +266,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should not update profile when ID is invalid")
     void testUpdateProfileById_InvalidId_ShouldNotUpdate() {
         // Given
         Integer invalidId = 99999;
@@ -267,6 +279,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update verified ID when valid data is provided")
     void testUpdateVerifiedIdById_ValidData_ShouldUpdateVerifiedId() {
         // Given
         User newUser = new User();
@@ -291,6 +304,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update verified ID to null when null value is provided")
     void testUpdateVerifiedIdById_NullValue_ShouldUpdateToNull() {
         // Given
         User newUser = new User();
@@ -314,6 +328,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update user role when valid data is provided")
     void testUpdateRoleById_ValidData_ShouldUpdateRole() {
         // Given
         User newUser = new User();
@@ -338,6 +353,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should not update role when ID is invalid")
     void testUpdateRoleById_InvalidId_ShouldNotUpdate() {
         // Given
         Integer invalidId = 99999;
@@ -351,6 +367,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update user status when valid data is provided")
     void testUpdateStatusById_ValidData_ShouldUpdateStatus() {
         // Given
         User newUser = new User();
@@ -375,6 +392,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should not update status when ID is invalid")
     void testUpdateStatusById_InvalidId_ShouldNotUpdate() {
         // Given
         Integer invalidId = 99999;
@@ -388,6 +406,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should perform CRUD operations correctly")
     void testCrudOperations_SaveFindDelete_ShouldWorkCorrectly() {
         // Given
         User newUser = new User();
@@ -422,6 +441,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return all users when finding all records")
     void testFindAll_ShouldReturnAllUsers() {
         // When
         Iterable<User> allUsers = userRepository.findAll();
@@ -432,6 +452,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should ensure transactional behavior for update methods")
     void testTransactionalBehavior_UpdateMethods_ShouldBeTransactional() {
         // Given
         User newUser = new User();
@@ -453,6 +474,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should set createdAt timestamp when user is created")
     void testAuditFields_CreatedAt_ShouldBeSetOnCreation() {
         // Given
         User newUser = new User();
@@ -483,6 +505,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update updatedAt timestamp when user is updated")
     void testAuditFields_UpdatedAt_ShouldChangeOnUpdate() throws InterruptedException {
         // Given
         User newUser = new User();
@@ -514,6 +537,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should update updatedAt timestamp when using repository update methods")
     void testAuditFields_UpdatedAt_ShouldChangeOnRepositoryUpdate() throws InterruptedException {
         // Given
         User newUser = new User();
@@ -545,6 +569,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should ensure all test users have valid audit timestamps")
     void testAuditFields_AllTestUsers_ShouldHaveValidTimestamps() {
         // When - Get all users created in setUp()
         Iterable<User> allUsers = userRepository.findAll();
@@ -559,6 +584,7 @@ public class UserRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should not affect timestamps when performing find operations")
     void testAuditFields_FindOperations_ShouldNotAffectTimestamps() {
         // Given
         User newUser = new User();

@@ -49,7 +49,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
         final String authorization = request.getHeader("Authorization");
 
-        // If there is no Authorization header or it is not a Bearer token, continue the filter chain
+        // If there is no Authorization header, or it is not a Bearer token, continue the filter chain
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;

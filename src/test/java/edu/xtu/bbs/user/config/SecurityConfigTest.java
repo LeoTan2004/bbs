@@ -4,6 +4,7 @@ import edu.xtu.bbs.user.service.JwtTokenService;
 import edu.xtu.bbs.user.service.UserService;
 import edu.xtu.bbs.verification.VerificationService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -49,6 +50,7 @@ class SecurityConfigTest {
      * Test that /auth/** paths allow anonymous access
      */
     @Test
+    @DisplayName("Should allow anonymous access to auth paths")
     void testAuthPathsShouldAllowAnonymousAccess() throws Exception {
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -61,6 +63,7 @@ class SecurityConfigTest {
      * Test that CSRF is disabled
      */
     @Test
+    @DisplayName("Should have CSRF disabled")
     void testCsrfShouldBeDisabled() throws Exception {
         mockMvc.perform(post("/api/test")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -72,6 +75,7 @@ class SecurityConfigTest {
      * Test email code login endpoint
      */
     @Test
+    @DisplayName("Should handle email code login endpoint")
     void testEmailCodeLoginEndpoint() throws Exception {
         mockMvc.perform(post("/auth/login-with-code")
                         .contentType(MediaType.APPLICATION_JSON)
