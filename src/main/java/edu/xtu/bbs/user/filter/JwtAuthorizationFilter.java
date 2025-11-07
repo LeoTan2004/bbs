@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -61,7 +62,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
             // Only perform JWT authentication if subject is not null and there is no current authentication
-            if (subject != null && authentication == null) {
+            if (StringUtils.hasText(subject) && authentication == null) {
                 final UserDetails userDetails = userService.findByUsername(subject);
                 if (jwtTokenService.isValidToken(jwt)) {
                     final UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
