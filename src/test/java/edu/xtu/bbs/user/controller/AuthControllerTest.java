@@ -3,6 +3,7 @@ package edu.xtu.bbs.user.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.xtu.bbs.user.dto.CreateUserRequest;
 import edu.xtu.bbs.user.service.AuthenticationService;
+import edu.xtu.bbs.user.vo.PasswordUpdateRequest;
 import edu.xtu.bbs.user.vo.RegisterVo;
 import edu.xtu.bbs.verification.VerificationParam;
 import edu.xtu.bbs.verification.VerificationSender;
@@ -31,9 +32,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerTest {
 
     public static final String EMAIL = "123456789@example.com";
+    public static final String RESET_EMAIL = "reset.password@example.com";
     public static final String USERNAME = "mock-user";
+    public static final String RESET_USERNAME = "reset-user";
     public static final String PASSWORD = "mock-password";
+    public static final String NEW_PASSWORD = "new-mock-password";
     public static final String NICKNAME = "MockNickname";
+    public static final String RESET_NICKNAME = "ResetNickname";
     public static final String BIO = "This is a mock user.";
     @MockitoBean
     private VerificationSender sender;
@@ -107,6 +112,110 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.username").value(USERNAME));
 
 
+    }
+
+    @Test
+    @DisplayName("Test Password Reset After Registration")
+    void testPasswordResetAfterRegistration() throws Exception {
+        
+        final AtomicReference<String> registerCode = new AtomicReference<>();
+        final AtomicReference<String> registerToken = new AtomicReference<>();
+        final AtomicReference<String> resetCode = new AtomicReference<>();
+        final AtomicReference<String> resetToken = new AtomicReference<>();
+        final String pattern = "code is: 【";
+
+        when(sender.sendCode(eq(RESET_EMAIL), any())).then(
+                invocation -> {
+                    final String verificationInfo = invocation.getArgument(1).toString();
+                    final int startIdx = verificationInfo.indexOf(pattern) + pattern.length();
+                    final String verifyCode = verificationInfo.substring(startIdx, startIdx + 6);
+                    
+                    // Determine if this is for registration or password reset based on the context
+                    if (registerCode.get() == null) {
+                        registerCode.set(verifyCode);
+                    } else {
+                        resetCode.set(verifyCode);
+                    }
+                    return true;
+                }
+        );
+
+        // Step 1: Register a user first (reusing the registration process)
+        mockMvc.perform(post("/auth/register/send-code")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("email", RESET_EMAIL)
+                )
+                .andExpect(status().isOk())
+                .andDo(result ->
+                        registerToken.set(result.getResponse().getContentAsString())
+                );
+
+        final RegisterVo registerVo = new RegisterVo();
+        registerVo.setUser(new CreateUserRequest(RESET_USERNAME, PASSWORD, RESET_EMAIL, RESET_NICKNAME, BIO));
+        registerVo.setVerification(new VerificationParam(RESET_EMAIL, registerToken.get(), AuthenticationService.BIND_EMAIL, registerCode.get()));
+
+        final String registerJson = objectMapper.writeValueAsString(registerVo);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerJson)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(RESET_EMAIL));
+
+        // Step 2: Send verification code for password reset
+        mockMvc.perform(post("/auth/reset-password/send-code")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("email", RESET_EMAIL)
+                )
+                .andExpect(status().isOk())
+                .andDo(result ->
+                        resetToken.set(result.getResponse().getContentAsString())
+                );
+
+        // Step 3: Reset password with the received code and token
+        final PasswordUpdateRequest passwordUpdateRequest = new PasswordUpdateRequest();
+        passwordUpdateRequest.setEmail(RESET_EMAIL);
+        passwordUpdateRequest.setPassword(NEW_PASSWORD);
+        passwordUpdateRequest.setVerification(new VerificationParam(RESET_EMAIL, resetToken.get(), AuthenticationService.CHANGE_PWD, resetCode.get()));
+
+        final String resetPasswordJson = objectMapper.writeValueAsString(passwordUpdateRequest);
+
+        mockMvc.perform(post("/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(resetPasswordJson)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
+
+        final AtomicReference<String> authHeader = new AtomicReference<>();
+
+        // Step 4: Login with the new password to verify reset success
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", RESET_USERNAME)
+                        .param("password", NEW_PASSWORD)
+                )
+                .andExpect(status().isOk())
+                .andExpect(header().exists("Authorization"))
+                .andDo(
+                        result ->
+                                authHeader.set(result.getResponse().getHeader("Authorization"))
+                );
+
+        // Step 5: Verify the old password no longer works
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("username", RESET_USERNAME)
+                        .param("password", PASSWORD)  // Old password
+                )
+                .andExpect(status().isUnauthorized());
+
+        // Step 6: Access a protected resource with new authentication to confirm password change
+        mockMvc.perform(get("/user")
+                        .header("Authorization", authHeader.get()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(RESET_USERNAME));
     }
 
 }
