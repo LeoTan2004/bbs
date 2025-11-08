@@ -7,6 +7,9 @@ import edu.xtu.bbs.user.model.Status;
 import edu.xtu.bbs.user.model.User;
 import edu.xtu.bbs.user.repo.UserRepository;
 import edu.xtu.bbs.verification.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -39,45 +42,6 @@ public class AuthenticationService {
         this.userRepository = userRepository;
     }
 
-//    /**
-//     * Authenticate user by email verification
-//     *
-//     * @param param the verification param
-//     * @return the authenticated user
-//     * @throws EmailNotFoundException               if the email is not found
-//     * @throws VerificationRequestNotFoundException if verification request is not found
-//     * @throws VerificationTooFrequentException     if verification is too frequent
-//     * @throws VerificationScopeIncorrectException  if verification scope is incorrect
-//     * @throws VerificationExpiredException         if verification has expired
-//     * @throws InvalidVerificationException         if verification is invalid
-//     */
-//    public User authenticate(VerificationParam param) throws EmailNotFoundException, VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationScopeIncorrectException, VerificationExpiredException, InvalidVerificationException {
-//        final User user = userRepository.findByEmail(param.principle()).orElseThrow(
-//                () -> new EmailNotFoundException(param.principle(), "Cannot find user by email")
-//        );
-//        if (!verify(param, LOGIN, param.principle())) {
-//            throw new InvalidVerificationException();
-//        }
-//        return user;
-//    }
-//
-//
-//    /**
-//     * Pre-login email verification
-//     * <p>
-//     * Send verify code to email for login request if email exists
-//     * </p>
-//     *
-//     * @param email email address
-//     * @return the token that can be used to verify the code
-//     * @throws EmailNotFoundException if the email is not found
-//     */
-//    private String emailLoginVerify(String email) throws EmailNotFoundException {
-//        if (!userService.existsByEmail(email)) {
-//            throw new EmailNotFoundException(email, "Email not found");
-//        }
-//        return verificationService.sendCode(email, LOGIN);
-//    }
 
     /**
      * Pre-bind email verification
@@ -197,4 +161,17 @@ public class AuthenticationService {
     }
 
 
+    public UserDetails getCurrentUser() {
+        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null; // or throw an exception if you prefer
+        }
+        if (authentication.getPrincipal() instanceof User user) {
+            return user;
+        } else if (authentication.getPrincipal() instanceof String username) {
+            return userService.findByUsername(username);
+        } else {
+            throw new IllegalStateException("Unexpected principal type: " + authentication.getPrincipal().getClass().getName());
+        }
+    }
 }

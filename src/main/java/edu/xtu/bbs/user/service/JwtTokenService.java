@@ -22,13 +22,19 @@ public class JwtTokenService {
 
     private final JwtTokenConfiguration jwtTokenConfiguration;
 
+    private final SecretKey secretKey;
+
     public JwtTokenService(JwtTokenConfiguration jwtTokenConfiguration) {
         this.jwtTokenConfiguration = jwtTokenConfiguration;
+        this.secretKey = getSigningKey();
     }
 
     private SecretKey getSigningKey() {
+        if (secretKey != null) {
+            return secretKey;
+        }
         final String secretKey = jwtTokenConfiguration.getSecretKey();
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        final byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
