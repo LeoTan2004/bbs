@@ -5,6 +5,7 @@ import edu.xtu.bbs.user.exception.EmailNotFoundException;
 import edu.xtu.bbs.user.exception.InvalidVerificationException;
 import edu.xtu.bbs.user.exception.UsernameOccupiedException;
 import edu.xtu.bbs.user.service.AuthenticationService;
+import edu.xtu.bbs.user.vo.PasswordUpdateRequest;
 import edu.xtu.bbs.user.vo.RegisterVo;
 import edu.xtu.bbs.verification.VerificationExpiredException;
 import edu.xtu.bbs.verification.VerificationRequestNotFoundException;
@@ -39,6 +40,16 @@ public class AuthController {
     @PostMapping("/login/send-code")
     public String loginByEmail(@Email String email) throws EmailNotFoundException {
         return authenticationService.loginEmailVerify(email);
+    }
+
+    @PostMapping("/reset-password/send-code")
+    public String resetPasswordByEmail(@Email String email) throws EmailNotFoundException {
+        return authenticationService.preUpdatePassword(email);
+    }
+
+    @PostMapping("/reset-password")
+    public Boolean resetPassword(@RequestBody PasswordUpdateRequest request) throws VerificationRequestNotFoundException, VerificationTooFrequentException, EmailNotFoundException, VerificationScopeIncorrectException, VerificationExpiredException, InvalidVerificationException {
+        return authenticationService.updatePassword(request.getEmail(), request.getPassword(), request.getVerification());
     }
 
 

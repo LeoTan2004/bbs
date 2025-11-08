@@ -1,7 +1,10 @@
 package edu.xtu.bbs.user.service;
 
 import edu.xtu.bbs.user.dto.CreateUserRequest;
-import edu.xtu.bbs.user.exception.*;
+import edu.xtu.bbs.user.exception.EmailAlreadyExistsException;
+import edu.xtu.bbs.user.exception.EmailNotFoundException;
+import edu.xtu.bbs.user.exception.InvalidVerificationException;
+import edu.xtu.bbs.user.exception.UsernameOccupiedException;
 import edu.xtu.bbs.user.model.Role;
 import edu.xtu.bbs.user.model.Status;
 import edu.xtu.bbs.user.model.User;
@@ -9,7 +12,7 @@ import edu.xtu.bbs.user.repo.UserRepository;
 import edu.xtu.bbs.verification.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -60,6 +63,17 @@ public class AuthenticationService {
         return verificationService.sendCode(email, BIND_EMAIL);
     }
 
+
+    /**
+     * Pre-login email verification
+     * <p>
+     * Send verify code to email for login request if email exists
+     * </p>
+     *
+     * @param email the email to be used for login
+     * @return the token that can be used to verify the code
+     * @throws EmailNotFoundException if the email is not found
+     */
     public String loginEmailVerify(String email) throws EmailNotFoundException {
         if (!userService.existsByEmail(email)) {
             throw new EmailNotFoundException(email, "Email not found");
@@ -110,35 +124,25 @@ public class AuthenticationService {
     }
 
 
-    /**
-     * Before changing password, send verification code to user's email
-     *
-     * @param userId the id of the user which wants to change password
-     * @return the token that can be used to verify the code
-     * @throws UserNotFoundException if user not found
-     */
-    public String preUpdatePassword(Integer userId) throws UserNotFoundException {
-        final User user = userService.getUserById(userId);
-        final String email = user.getEmail();
+    public String preUpdatePassword(String email) throws EmailNotFoundException {
+
+        if (!userService.existsByEmail(email)) {
+            throw new EmailNotFoundException(email, "Email not found: " + email);
+        }
         return verificationService.sendCode(email, CHANGE_PWD);
     }
 
 
-    /**
-     * Update user's password after verifying the code
-     *
-     * @param userId      the id of the user which wants to change password
-     * @param newPassword the new password
-     * @param param       the verification param
-     * @return true if update successful, false otherwise
-     */
-    public boolean updatePassword(Integer userId, String newPassword, VerificationParam param)
-            throws UserNotFoundException, VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationExpiredException, VerificationScopeIncorrectException, InvalidVerificationException {
+    public boolean updatePassword(String email, String newPassword, VerificationParam param)
+            throws VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationExpiredException, VerificationScopeIncorrectException, InvalidVerificationException, EmailNotFoundException {
 
-        User user = userService.getUserById(userId);
+        if (!userService.existsByEmail(email)) {
+            throw new EmailNotFoundException(email, "Email not found");
+        }
 
-        if (verify(param, CHANGE_PWD, user.getEmail())) {
+        if (verify(param, CHANGE_PWD, email)) {
             final String encodedNewPassword = passwordEncoder.encode(newPassword);
+            final Integer userId = userRepository.findByEmail(email).map(User::getId).orElse(null);
             if (encodedNewPassword == null || userId == null) {
                 return false;
             }
@@ -161,7 +165,7 @@ public class AuthenticationService {
     }
 
 
-    public UserDetails getCurrentUser() {
+    public User getCurrentUser() {
         final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return null; // or throw an exception if you prefer
@@ -169,7 +173,7 @@ public class AuthenticationService {
         if (authentication.getPrincipal() instanceof User user) {
             return user;
         } else if (authentication.getPrincipal() instanceof String username) {
-            return userService.findByUsername(username);
+            return userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("couldn't find user: " + username));
         } else {
             throw new IllegalStateException("Unexpected principal type: " + authentication.getPrincipal().getClass().getName());
         }

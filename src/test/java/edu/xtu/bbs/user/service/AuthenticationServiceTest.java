@@ -1,7 +1,10 @@
 package edu.xtu.bbs.user.service;
 
 import edu.xtu.bbs.user.dto.CreateUserRequest;
-import edu.xtu.bbs.user.exception.*;
+import edu.xtu.bbs.user.exception.EmailAlreadyExistsException;
+import edu.xtu.bbs.user.exception.EmailNotFoundException;
+import edu.xtu.bbs.user.exception.InvalidVerificationException;
+import edu.xtu.bbs.user.exception.UsernameOccupiedException;
 import edu.xtu.bbs.user.model.Role;
 import edu.xtu.bbs.user.model.Status;
 import edu.xtu.bbs.user.model.User;
@@ -156,7 +159,6 @@ class AuthenticationServiceTest {
 
     @Test
     @DisplayName("Should register user successfully with valid data and verification")
-    @SuppressWarnings("unchecked")
     void register_WithValidDataAndVerification_ShouldCreateUser() throws Exception {
         // Given
         String encodedPassword = "$2a$10$encodedPassword";
@@ -300,36 +302,36 @@ class AuthenticationServiceTest {
 
     @Test
     @DisplayName("Should send verification code for password update successfully")
-    void preUpdatePassword_WhenUserExists_ShouldReturnToken() throws UserNotFoundException {
+    void preUpdatePassword_WhenEmailExists_ShouldReturnToken() throws EmailNotFoundException {
         // Given
-        Integer userId = 1;
+        String email = "test@example.com";
         String expectedToken = "verification-token";
 
-        when(userService.getUserById(userId)).thenReturn(testUser);
-        when(verificationService.sendCode(testUser.getEmail(), AuthenticationService.CHANGE_PWD))
+        when(userService.existsByEmail(email)).thenReturn(true);
+        when(verificationService.sendCode(email, AuthenticationService.CHANGE_PWD))
                 .thenReturn(expectedToken);
 
         // When
-        String result = authenticationService.preUpdatePassword(userId);
+        String result = authenticationService.preUpdatePassword(email);
 
         // Then
         assertThat(result).isEqualTo(expectedToken);
-        verify(userService).getUserById(userId);
-        verify(verificationService).sendCode(testUser.getEmail(), AuthenticationService.CHANGE_PWD);
+        verify(userService).existsByEmail(email);
+        verify(verificationService).sendCode(email, AuthenticationService.CHANGE_PWD);
     }
 
     @Test
-    @DisplayName("Should throw UserNotFoundException when user does not exist for password update")
-    void preUpdatePassword_WhenUserDoesNotExist_ShouldThrowUserNotFoundException() throws UserNotFoundException {
+    @DisplayName("Should throw EmailNotFoundException when email does not exist for password update")
+    void preUpdatePassword_WhenEmailDoesNotExist_ShouldThrowEmailNotFoundException() {
         // Given
-        Integer userId = 999;
-        when(userService.getUserById(userId)).thenThrow(new UserNotFoundException("999"));
+        String email = "nonexistent@example.com";
+        when(userService.existsByEmail(email)).thenReturn(false);
 
         // When & Then
-        assertThatThrownBy(() -> authenticationService.preUpdatePassword(userId))
-                .isInstanceOf(UserNotFoundException.class);
+        assertThatThrownBy(() -> authenticationService.preUpdatePassword(email))
+                .isInstanceOf(EmailNotFoundException.class);
 
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verifyNoInteractions(verificationService);
     }
 
@@ -337,30 +339,33 @@ class AuthenticationServiceTest {
     @DisplayName("Should update password successfully with valid verification")
     void updatePassword_WithValidVerification_ShouldReturnTrue() throws Exception {
         // Given
-        Integer userId = 1;
+        String email = "test@example.com";
         String newPassword = "newpassword123";
         String encodedPassword = "$2a$10$newEncodedPassword";
+        Integer userId = 1;
 
         VerificationParam passwordParam = new VerificationParam(
-                testUser.getEmail(),
+                email,
                 "verification-token",
                 AuthenticationService.CHANGE_PWD,
                 "123456"
         );
 
-        when(userService.getUserById(userId)).thenReturn(testUser);
+        when(userService.existsByEmail(email)).thenReturn(true);
         when(verificationService.verifyCode(passwordParam)).thenReturn(true);
         when(passwordEncoder.encode(newPassword)).thenReturn(encodedPassword);
+        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
         when(userRepository.updatePasswordById(encodedPassword, userId)).thenReturn(1);
 
         // When
-        boolean result = authenticationService.updatePassword(userId, newPassword, passwordParam);
+        boolean result = authenticationService.updatePassword(email, newPassword, passwordParam);
 
         // Then
         assertThat(result).isTrue();
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verify(verificationService).verifyCode(passwordParam);
         verify(passwordEncoder).encode(newPassword);
+        verify(userRepository).findByEmail(email);
         verify(userRepository).updatePasswordById(encodedPassword, userId);
     }
 
@@ -368,30 +373,33 @@ class AuthenticationServiceTest {
     @DisplayName("Should return false when password update fails in database")
     void updatePassword_WhenDatabaseUpdateFails_ShouldReturnFalse() throws Exception {
         // Given
-        Integer userId = 1;
+        String email = "test@example.com";
         String newPassword = "newpassword123";
         String encodedPassword = "$2a$10$newEncodedPassword";
+        Integer userId = 1;
 
         VerificationParam passwordParam = new VerificationParam(
-                testUser.getEmail(),
+                email,
                 "verification-token",
                 AuthenticationService.CHANGE_PWD,
                 "123456"
         );
 
-        when(userService.getUserById(userId)).thenReturn(testUser);
+        when(userService.existsByEmail(email)).thenReturn(true);
         when(verificationService.verifyCode(passwordParam)).thenReturn(true);
         when(passwordEncoder.encode(newPassword)).thenReturn(encodedPassword);
+        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
         when(userRepository.updatePasswordById(encodedPassword, userId)).thenReturn(0);
 
         // When
-        boolean result = authenticationService.updatePassword(userId, newPassword, passwordParam);
+        boolean result = authenticationService.updatePassword(email, newPassword, passwordParam);
 
         // Then
         assertThat(result).isFalse();
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verify(verificationService).verifyCode(passwordParam);
         verify(passwordEncoder).encode(newPassword);
+        verify(userRepository).findByEmail(email);
         verify(userRepository).updatePasswordById(encodedPassword, userId);
     }
 
@@ -399,61 +407,61 @@ class AuthenticationServiceTest {
     @DisplayName("Should return false when verification fails for password update")
     void updatePassword_WhenVerificationFails_ShouldReturnFalse() throws Exception {
         // Given
-        Integer userId = 1;
+        String email = "test@example.com";
         String newPassword = "newpassword123";
 
         VerificationParam passwordParam = new VerificationParam(
-                testUser.getEmail(),
+                email,
                 "verification-token",
                 AuthenticationService.CHANGE_PWD,
                 "123456"
         );
 
-        when(userService.getUserById(userId)).thenReturn(testUser);
+        when(userService.existsByEmail(email)).thenReturn(true);
         when(verificationService.verifyCode(passwordParam)).thenReturn(false);
 
         // When
-        boolean result = authenticationService.updatePassword(userId, newPassword, passwordParam);
+        boolean result = authenticationService.updatePassword(email, newPassword, passwordParam);
 
         // Then
         assertThat(result).isFalse();
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verify(verificationService).verifyCode(passwordParam);
         verifyNoInteractions(passwordEncoder);
         verify(userRepository, never()).updatePasswordById(anyString(), anyInt());
     }
 
     @Test
-    @DisplayName("Should throw UserNotFoundException when user does not exist for password update")
-    void updatePassword_WhenUserDoesNotExist_ShouldThrowUserNotFoundException() throws UserNotFoundException {
+    @DisplayName("Should throw EmailNotFoundException when email does not exist for password update")
+    void updatePassword_WhenEmailDoesNotExist_ShouldThrowEmailNotFoundException() {
         // Given
-        Integer userId = 999;
+        String email = "nonexistent@example.com";
         String newPassword = "newpassword123";
 
         VerificationParam passwordParam = new VerificationParam(
-                "test@example.com",
+                email,
                 "verification-token",
                 AuthenticationService.CHANGE_PWD,
                 "123456"
         );
 
-        when(userService.getUserById(userId)).thenThrow(new UserNotFoundException("999"));
+        when(userService.existsByEmail(email)).thenReturn(false);
 
         // When & Then
-        assertThatThrownBy(() -> authenticationService.updatePassword(userId, newPassword, passwordParam))
-                .isInstanceOf(UserNotFoundException.class);
+        assertThatThrownBy(() -> authenticationService.updatePassword(email, newPassword, passwordParam))
+                .isInstanceOf(EmailNotFoundException.class);
 
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verifyNoInteractions(verificationService);
         verifyNoInteractions(passwordEncoder);
         verify(userRepository, never()).updatePasswordById(anyString(), anyInt());
     }
 
     @Test
-    @DisplayName("Should throw InvalidVerificationException when principle doesn't match user email")
-    void updatePassword_WhenPrincipleDoesNotMatchUserEmail_ShouldThrowInvalidVerificationException() throws UserNotFoundException {
+    @DisplayName("Should throw InvalidVerificationException when principle doesn't match email")
+    void updatePassword_WhenPrincipleDoesNotMatchEmail_ShouldThrowInvalidVerificationException() {
         // Given
-        Integer userId = 1;
+        String email = "test@example.com";
         String newPassword = "newpassword123";
 
         VerificationParam passwordParam = new VerificationParam(
@@ -463,13 +471,13 @@ class AuthenticationServiceTest {
                 "123456"
         );
 
-        when(userService.getUserById(userId)).thenReturn(testUser);
+        when(userService.existsByEmail(email)).thenReturn(true);
 
         // When & Then
-        assertThatThrownBy(() -> authenticationService.updatePassword(userId, newPassword, passwordParam))
+        assertThatThrownBy(() -> authenticationService.updatePassword(email, newPassword, passwordParam))
                 .isInstanceOf(InvalidVerificationException.class);
 
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verifyNoInteractions(verificationService);
         verifyNoInteractions(passwordEncoder);
         verify(userRepository, never()).updatePasswordById(anyString(), anyInt());
@@ -477,25 +485,25 @@ class AuthenticationServiceTest {
 
     @Test
     @DisplayName("Should throw VerificationScopeIncorrectException when scope is incorrect for password update")
-    void updatePassword_WhenScopeIsIncorrect_ShouldThrowVerificationScopeIncorrectException() throws UserNotFoundException {
+    void updatePassword_WhenScopeIsIncorrect_ShouldThrowVerificationScopeIncorrectException() {
         // Given
-        Integer userId = 1;
+        String email = "test@example.com";
         String newPassword = "newpassword123";
 
         VerificationParam passwordParam = new VerificationParam(
-                testUser.getEmail(),
+                email,
                 "verification-token",
                 "Login",
                 "123456"
         );
 
-        when(userService.getUserById(userId)).thenReturn(testUser);
+        when(userService.existsByEmail(email)).thenReturn(true);
 
         // When & Then
-        assertThatThrownBy(() -> authenticationService.updatePassword(userId, newPassword, passwordParam))
+        assertThatThrownBy(() -> authenticationService.updatePassword(email, newPassword, passwordParam))
                 .isInstanceOf(VerificationScopeIncorrectException.class);
 
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verifyNoInteractions(verificationService);
         verifyNoInteractions(passwordEncoder);
         verify(userRepository, never()).updatePasswordById(anyString(), anyInt());
@@ -505,28 +513,30 @@ class AuthenticationServiceTest {
     @DisplayName("Should return false when encoded password is null")
     void updatePassword_WhenEncodedPasswordIsNull_ShouldReturnFalse() throws Exception {
         // Given
-        Integer userId = 1;
+        String email = "test@example.com";
         String newPassword = "newpassword123";
 
         VerificationParam passwordParam = new VerificationParam(
-                testUser.getEmail(),
+                email,
                 "verification-token",
                 AuthenticationService.CHANGE_PWD,
                 "123456"
         );
 
-        when(userService.getUserById(userId)).thenReturn(testUser);
+        when(userService.existsByEmail(email)).thenReturn(true);
         when(verificationService.verifyCode(passwordParam)).thenReturn(true);
         when(passwordEncoder.encode(newPassword)).thenReturn(null);
+        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
 
         // When
-        boolean result = authenticationService.updatePassword(userId, newPassword, passwordParam);
+        boolean result = authenticationService.updatePassword(email, newPassword, passwordParam);
 
         // Then
         assertThat(result).isFalse();
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verify(verificationService).verifyCode(passwordParam);
         verify(passwordEncoder).encode(newPassword);
+        verify(userRepository).findByEmail(email);
         verify(userRepository, never()).updatePasswordById(anyString(), anyInt());
     }
 
@@ -534,25 +544,25 @@ class AuthenticationServiceTest {
     @DisplayName("Should propagate VerificationRequestNotFoundException")
     void updatePassword_WhenVerificationRequestNotFound_ShouldThrowVerificationRequestNotFoundException() throws Exception {
         // Given
-        Integer userId = 1;
+        String email = "test@example.com";
         String newPassword = "newpassword123";
 
         VerificationParam passwordParam = new VerificationParam(
-                testUser.getEmail(),
+                email,
                 "verification-token",
                 AuthenticationService.CHANGE_PWD,
                 "123456"
         );
 
-        when(userService.getUserById(userId)).thenReturn(testUser);
+        when(userService.existsByEmail(email)).thenReturn(true);
         when(verificationService.verifyCode(passwordParam))
                 .thenThrow(new VerificationRequestNotFoundException());
 
         // When & Then
-        assertThatThrownBy(() -> authenticationService.updatePassword(userId, newPassword, passwordParam))
+        assertThatThrownBy(() -> authenticationService.updatePassword(email, newPassword, passwordParam))
                 .isInstanceOf(VerificationRequestNotFoundException.class);
 
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verify(verificationService).verifyCode(passwordParam);
         verifyNoInteractions(passwordEncoder);
         verify(userRepository, never()).updatePasswordById(anyString(), anyInt());
@@ -562,27 +572,28 @@ class AuthenticationServiceTest {
     @DisplayName("Should propagate VerificationExpiredException")
     void updatePassword_WhenVerificationExpired_ShouldThrowVerificationExpiredException() throws Exception {
         // Given
-        Integer userId = 1;
+        String email = "test@example.com";
         String newPassword = "newpassword123";
 
         VerificationParam passwordParam = new VerificationParam(
-                testUser.getEmail(),
+                email,
                 "verification-token",
                 AuthenticationService.CHANGE_PWD,
                 "123456"
         );
 
-        when(userService.getUserById(userId)).thenReturn(testUser);
+        when(userService.existsByEmail(email)).thenReturn(true);
         when(verificationService.verifyCode(passwordParam))
                 .thenThrow(new VerificationExpiredException());
 
         // When & Then
-        assertThatThrownBy(() -> authenticationService.updatePassword(userId, newPassword, passwordParam))
+        assertThatThrownBy(() -> authenticationService.updatePassword(email, newPassword, passwordParam))
                 .isInstanceOf(VerificationExpiredException.class);
 
-        verify(userService).getUserById(userId);
+        verify(userService).existsByEmail(email);
         verify(verificationService).verifyCode(passwordParam);
         verifyNoInteractions(passwordEncoder);
         verify(userRepository, never()).updatePasswordById(anyString(), anyInt());
     }
+
 }
