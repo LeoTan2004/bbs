@@ -8,7 +8,7 @@ import org.springframework.util.unit.DataSize;
 import java.time.Duration;
 import java.util.List;
 
-@ConfigurationProperties(prefix = "oss.avatar")
+@ConfigurationProperties(prefix = "bbs.oss.avatar")
 @Component
 @Data
 public class AvatarConfiguration {

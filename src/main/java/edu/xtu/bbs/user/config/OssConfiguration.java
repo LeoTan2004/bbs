@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 @Data
-@ConfigurationProperties(prefix = "oss")
+@ConfigurationProperties(prefix = "bbs.oss")
 @Component
 public class OssConfiguration {
     private String secretId;

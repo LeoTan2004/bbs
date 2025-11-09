@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
-@ConfigurationProperties(prefix = "security.jwt")
+@ConfigurationProperties(prefix = "bbs.security.jwt")
 @Component
 @Data
 public class JwtTokenConfiguration {

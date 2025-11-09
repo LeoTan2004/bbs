@@ -16,22 +16,23 @@ spring:
     port: 465
     ssl:
       enabled: true
-oss:
-  secret-id: ${OSS_SECRET_ID:secret-id}
-  secret-key: ${OSS_SECRET_KEY:secret-key}
-  region: ${OSS_REGION:ap-guangzhou}
-  avatar:
-    bucket: ${OSS_AVATAR_BUCKET:avatar-bucket}
-    allow-types:
-      - "image/jpeg"
-      - "image/png"
-      - "image/gif"
-      - "image/bmp"
-      - "image/webp"
-    max-size: 5MB
-    prefix: "/avatars"
-    expired-after: 30s
-security:
-  jwt:
-    secret-key: ${JWT_SECRET_KEY}
-    expired-time: 2h
+bbs:
+  oss:
+    secret-id: ${OSS_SECRET_ID:secret-id}
+    secret-key: ${OSS_SECRET_KEY:secret-key}
+    region: ${OSS_REGION:ap-guangzhou}
+    avatar:
+      bucket: ${OSS_AVATAR_BUCKET:avatar-bucket}
+      allow-types:
+        - "image/jpeg"
+        - "image/png"
+        - "image/gif"
+        - "image/bmp"
+        - "image/webp"
+      max-size: 5MB
+      prefix: "/avatars"
+      expired-after: 30s
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY}
+      expired-time: 2h
