@@ -18,6 +18,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -227,8 +229,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         log.warn("Parameter validation exception: {}", e.getMessage());
 
+        return getApiResponseResponseEntity(e.getBindingResult());
+    }
+
+    private ResponseEntity<ApiResponse<Object>> getApiResponseResponseEntity(BindingResult bindingResult) {
         Map<String, String> errors = new HashMap<>();
-        for (FieldError error : e.getBindingResult().getFieldErrors()) {
+        for (FieldError error : bindingResult.getFieldErrors()) {
             errors.put(error.getField(), error.getDefaultMessage());
         }
 
@@ -244,14 +250,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleBindException(BindException e) {
         log.warn("Parameter binding exception: {}", e.getMessage());
 
-        Map<String, String> errors = new HashMap<>();
-        for (FieldError error : e.getBindingResult().getFieldErrors()) {
-            errors.put(error.getField(), error.getDefaultMessage());
-        }
-
-        ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID);
-        response.setData(errors);
-        return ResponseEntity.badRequest().body(response);
+        return getApiResponseResponseEntity(e.getBindingResult());
     }
 
     /**
@@ -319,8 +318,8 @@ public class GlobalExceptionHandler {
     /**
      * Handle NoResourceFoundException (Spring 6.x)
      */
-    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleNoResourceFoundException(org.springframework.web.servlet.resource.NoResourceFoundException e) {
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNoResourceFoundException(NoResourceFoundException e) {
         log.warn("No resource found exception: {}", e.getMessage());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, "Resource not found");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
