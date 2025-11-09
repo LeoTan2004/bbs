@@ -1,5 +1,6 @@
 package edu.xtu.bbs.user.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.xtu.bbs.user.dto.CreateUserRequest;
 import edu.xtu.bbs.user.service.AuthenticationService;
@@ -72,9 +73,14 @@ class AuthControllerTest {
                         .param("email", EMAIL)
                 )
                 .andExpect(status().isOk())
-                .andDo(result ->
-                        token.set(result.getResponse().getContentAsString())
-                );
+                .andExpect(jsonPath("$.data.token").exists())
+                .andDo(result -> {
+                    String responseBody = result.getResponse().getContentAsString();
+                    // Parse JSON to get token from VO object
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode jsonNode = mapper.readTree(responseBody);
+                    token.set(jsonNode.get("data").get("token").asText());
+                });
 
         final RegisterVo registerVo = new RegisterVo();
         registerVo.setUser(new CreateUserRequest(USERNAME, PASSWORD, EMAIL, NICKNAME, BIO));
@@ -88,7 +94,7 @@ class AuthControllerTest {
                         .content(registerJson)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(EMAIL));
+                .andExpect(jsonPath("$.data.email").value(EMAIL));
 
         final AtomicReference<String> authHeader = new AtomicReference<>();
 
@@ -109,7 +115,7 @@ class AuthControllerTest {
         mockMvc.perform(get("/user")
                         .header("Authorization", authHeader.get()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value(USERNAME));
+                .andExpect(jsonPath("$.data.username").value(USERNAME));
 
 
     }
@@ -146,9 +152,13 @@ class AuthControllerTest {
                         .param("email", RESET_EMAIL)
                 )
                 .andExpect(status().isOk())
-                .andDo(result ->
-                        registerToken.set(result.getResponse().getContentAsString())
-                );
+                .andExpect(jsonPath("$.data.token").exists())
+                .andDo(result -> {
+                    String responseBody = result.getResponse().getContentAsString();
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode jsonNode = mapper.readTree(responseBody);
+                    registerToken.set(jsonNode.get("data").get("token").asText());
+                });
 
         final RegisterVo registerVo = new RegisterVo();
         registerVo.setUser(new CreateUserRequest(RESET_USERNAME, PASSWORD, RESET_EMAIL, RESET_NICKNAME, BIO));
@@ -161,7 +171,7 @@ class AuthControllerTest {
                         .content(registerJson)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(RESET_EMAIL));
+                .andExpect(jsonPath("$.data.email").value(RESET_EMAIL));
 
         // Step 2: Send verification code for password reset
         mockMvc.perform(post("/auth/reset-password/send-code")
@@ -169,9 +179,13 @@ class AuthControllerTest {
                         .param("email", RESET_EMAIL)
                 )
                 .andExpect(status().isOk())
-                .andDo(result ->
-                        resetToken.set(result.getResponse().getContentAsString())
-                );
+                .andExpect(jsonPath("$.data.token").exists())
+                .andDo(result -> {
+                    String responseBody = result.getResponse().getContentAsString();
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode jsonNode = mapper.readTree(responseBody);
+                    resetToken.set(jsonNode.get("data").get("token").asText());
+                });
 
         // Step 3: Reset password with the received code and token
         final PasswordUpdateRequest passwordUpdateRequest = new PasswordUpdateRequest();
@@ -186,7 +200,7 @@ class AuthControllerTest {
                         .content(resetPasswordJson)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string("true"));
+                .andExpect(jsonPath("$.data.success").value(true));
 
         final AtomicReference<String> authHeader = new AtomicReference<>();
 
@@ -215,7 +229,7 @@ class AuthControllerTest {
         mockMvc.perform(get("/user")
                         .header("Authorization", authHeader.get()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value(RESET_USERNAME));
+                .andExpect(jsonPath("$.data.username").value(RESET_USERNAME));
     }
 
 }

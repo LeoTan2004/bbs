@@ -5,18 +5,19 @@ import edu.xtu.bbs.user.exception.EmailNotFoundException;
 import edu.xtu.bbs.user.exception.InvalidVerificationException;
 import edu.xtu.bbs.user.exception.UsernameOccupiedException;
 import edu.xtu.bbs.user.service.AuthenticationService;
-import edu.xtu.bbs.user.vo.PasswordUpdateRequest;
-import edu.xtu.bbs.user.vo.RegisterVo;
+import edu.xtu.bbs.user.vo.*;
 import edu.xtu.bbs.verification.VerificationExpiredException;
 import edu.xtu.bbs.verification.VerificationRequestNotFoundException;
 import edu.xtu.bbs.verification.VerificationScopeIncorrectException;
 import edu.xtu.bbs.verification.VerificationTooFrequentException;
 import jakarta.validation.constraints.Email;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -28,28 +29,33 @@ public class AuthController {
     }
 
     @PostMapping("/register/send-code")
-    public String registerByEmail(@Email String email) throws EmailAlreadyExistsException {
-        return authenticationService.bindEmailVerify(email);
+    public AuthTokenResponse registerByEmail(@Email String email) throws EmailAlreadyExistsException {
+        String token = authenticationService.bindEmailVerify(email);
+        return new AuthTokenResponse(token);
     }
 
     @PostMapping("/register")
-    public String register(@RequestBody RegisterVo registerVo) throws VerificationRequestNotFoundException, VerificationTooFrequentException, UsernameOccupiedException, VerificationScopeIncorrectException, EmailAlreadyExistsException, VerificationExpiredException, InvalidVerificationException {
-        return authenticationService.register(registerVo.getUser(), registerVo.getVerification()).getEmail();
+    public RegisterResponse register(@RequestBody RegisterVo registerVo) throws VerificationRequestNotFoundException, VerificationTooFrequentException, UsernameOccupiedException, VerificationScopeIncorrectException, EmailAlreadyExistsException, VerificationExpiredException, InvalidVerificationException {
+        String email = authenticationService.register(registerVo.getUser(), registerVo.getVerification()).getEmail();
+        return new RegisterResponse(email);
     }
 
     @PostMapping("/login/send-code")
-    public String loginByEmail(@Email String email) throws EmailNotFoundException {
-        return authenticationService.loginEmailVerify(email);
+    public AuthTokenResponse loginByEmail(@Email String email) throws EmailNotFoundException {
+        String token = authenticationService.loginEmailVerify(email);
+        return new AuthTokenResponse(token);
     }
 
     @PostMapping("/reset-password/send-code")
-    public String resetPasswordByEmail(@Email String email) throws EmailNotFoundException {
-        return authenticationService.preUpdatePassword(email);
+    public AuthTokenResponse resetPasswordByEmail(@Email String email) throws EmailNotFoundException {
+        String token = authenticationService.preUpdatePassword(email);
+        return new AuthTokenResponse(token);
     }
 
     @PostMapping("/reset-password")
-    public Boolean resetPassword(@RequestBody PasswordUpdateRequest request) throws VerificationRequestNotFoundException, VerificationTooFrequentException, EmailNotFoundException, VerificationScopeIncorrectException, VerificationExpiredException, InvalidVerificationException {
-        return authenticationService.updatePassword(request.getEmail(), request.getPassword(), request.getVerification());
+    public PasswordResetResponse resetPassword(@RequestBody PasswordUpdateRequest request) throws VerificationRequestNotFoundException, VerificationTooFrequentException, EmailNotFoundException, VerificationScopeIncorrectException, VerificationExpiredException, InvalidVerificationException {
+        boolean success = authenticationService.updatePassword(request.getEmail(), request.getPassword(), request.getVerification());
+        return new PasswordResetResponse(success);
     }
 
 
