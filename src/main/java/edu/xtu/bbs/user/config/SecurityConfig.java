@@ -1,5 +1,6 @@
 package edu.xtu.bbs.user.config;
 
+import edu.xtu.bbs.common.trace.TraceIdFilter;
 import edu.xtu.bbs.user.filter.EmailCodeAuthenticationProvider;
 import edu.xtu.bbs.user.filter.JwtAuthorizationFilter;
 import edu.xtu.bbs.user.filter.JwtEmailCodeAuthenticationFilter;
@@ -20,6 +21,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.session.SessionManagementFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -48,6 +50,7 @@ public class SecurityConfig {
                                             JwtEmailCodeAuthenticationFilter jwtEmailCodeAuthenticationFilter,
                                             JwtUsernamePasswordAuthenticationFilter jwtUsernamePasswordAuthenticationFilter,
                                             JwtAuthorizationFilter jwtAuthorizationFilter,
+                                            TraceIdFilter traceIdFilter,
                                             AuthenticationManager manager) throws Exception {
 
         http.csrf(AbstractHttpConfigurer::disable);
@@ -69,6 +72,7 @@ public class SecurityConfig {
         request → [Spring Security Filter Chain] → controller
 
         Filter Chain Order:
+        0. TraceIdFilter ← Custom TraceId filter (HIGHEST PRIORITY)
         1. SecurityContextPersistenceFilter (Manage SecurityContext)
         2. LogoutFilter (Handle logout requests)
         3. JwtAuthorizationFilter ← Custom JWT authorization filter
@@ -90,14 +94,17 @@ public class SecurityConfig {
         8. FilterSecurityInterceptor (Authorization checks)
 
         Notes:
+        - TraceIdFilter is placed BEFORE all other filters to ensure TraceId is available throughout the entire request
         - All custom filters are part of the Spring Security Filter Chain
         - JWT authorization filter skips /auth/** paths to avoid interfering with login flow
         - After successful authentication, subsequent authentication filters are usually skipped
         */
 
         // Add custom filters to the filter chain
-        // JWT authorization filter should be before authentication filters but after security context establishment
-        http.addFilterBefore(jwtAuthorizationFilter, BasicAuthenticationFilter.class)
+        // TraceIdFilter should be the FIRST filter to execute
+        http.addFilterBefore(traceIdFilter, SessionManagementFilter.class)
+                // JWT authorization filter should be before authentication filters but after security context establishment
+                .addFilterBefore(jwtAuthorizationFilter, BasicAuthenticationFilter.class)
                 .addFilterAfter(jwtEmailCodeAuthenticationFilter, JwtAuthorizationFilter.class)
                 .addFilterAfter(jwtUsernamePasswordAuthenticationFilter, JwtAuthorizationFilter.class);
         return http.build();

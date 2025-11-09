@@ -1,6 +1,7 @@
 package edu.xtu.bbs.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import edu.xtu.bbs.common.trace.TraceIdUtil;
 import lombok.Data;
 
 /**
@@ -33,8 +34,14 @@ public class ApiResponse<T> {
      */
     private Long timestamp;
 
+    /**
+     * Trace ID for request tracking
+     */
+    private String traceId;
+
     public ApiResponse() {
         this.timestamp = System.currentTimeMillis();
+        this.traceId = TraceIdUtil.getTraceId(); // Automatically get current thread's TraceId
     }
 
     public ApiResponse(Integer code, String message) {
