@@ -36,6 +36,10 @@ public class AuthController {
 
     @PostMapping("/register")
     public RegisterResponse register(@RequestBody RegisterVo registerVo) throws VerificationRequestNotFoundException, VerificationTooFrequentException, UsernameOccupiedException, VerificationScopeIncorrectException, EmailAlreadyExistsException, VerificationExpiredException, InvalidVerificationException {
+        if (registerVo == null || registerVo.getUser() == null) {
+            throw new IllegalArgumentException("Invalid registration request");
+        }
+        
         String email = authenticationService.register(registerVo.getUser(), registerVo.getVerification()).getEmail();
         return new RegisterResponse(email);
     }
@@ -54,6 +58,10 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public PasswordResetResponse resetPassword(@RequestBody PasswordUpdateRequest request) throws VerificationRequestNotFoundException, VerificationTooFrequentException, EmailNotFoundException, VerificationScopeIncorrectException, VerificationExpiredException, InvalidVerificationException {
+        if (request == null) {
+            throw new IllegalArgumentException("Invalid password reset request");
+        }
+        
         boolean success = authenticationService.updatePassword(request.getEmail(), request.getPassword(), request.getVerification());
         return new PasswordResetResponse(success);
     }

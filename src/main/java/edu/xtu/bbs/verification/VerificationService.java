@@ -1,5 +1,6 @@
 package edu.xtu.bbs.verification;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class VerificationService {
 
@@ -46,6 +48,7 @@ public class VerificationService {
     public String sendCode(String principal, String action) {
         final String code = generateCode();
         final String msg = VerificationMsgTemplate.of(principal, code, action);
+
         // Send the code using the VerificationSender
         boolean sent = verificationSender.sendCode(principal, msg);
 
@@ -61,6 +64,7 @@ public class VerificationService {
             verificationRequest.setExpiresAt(Instant.now().plus(validDuration));
             verificationRequest.setValidCount(0);
             verificationRequest.setStatus(VerificationStatus.Pending);
+
             final VerificationRequest save = verificationRequestRepository.save(verificationRequest);
             return save.getToken();
         }
@@ -72,9 +76,14 @@ public class VerificationService {
             VerificationExpiredException,
             VerificationTooFrequentException {
 
+        if (param == null) {
+            throw new IllegalArgumentException("Invalid verification parameter");
+        }
+
         final Optional<VerificationRequest> verificationRequest =
                 verificationRequestRepository.findByPrincipleAndToken(param.principle(), param.token());
         final VerificationRequest request = verificationRequest.orElseThrow(VerificationRequestNotFoundException::new);
+
         final Instant now = Instant.now();
 
         // Check the verification was valid
@@ -94,14 +103,16 @@ public class VerificationService {
         // Record some basic audit info
         request.setValidCount(currentValidCount + 1);
         request.setLastValidAt(now);
+
         if (Objects.equals(request.getCredential(), param.credential())
                 && Objects.equals(request.getScope(), param.scope())) {
             request.setStatus(VerificationStatus.Verified);
             verificationRequestRepository.save(request);
             return true;
+        } else {
+            verificationRequestRepository.save(request);
+            return false;
         }
-        verificationRequestRepository.save(request);
-        return false;
     }
 
 

@@ -8,6 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 
+@Slf4j
 @Component
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
@@ -78,12 +80,15 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             );
             // The token has been authenticated by JWT
             SecurityContextHolder.getContext().setAuthentication(token);
+            log.debug("JWT authentication successful for user: {}", username);
 
         } catch (UsernameNotFoundException | JwtTokenInvalidationException e) {
+            log.warn("JWT authentication failed: {}", e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         } catch (Exception e) {
             // On any exception (e.g., invalid token), clear the security context to let subsequent filters handle it
+            log.error("JWT authentication error: {}", e.getMessage(), e);
             SecurityContextHolder.clearContext();
         }
 
@@ -91,7 +96,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        return pathMatcher.match("/auth/**", request.getServletPath());
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        String servletPath = request.getServletPath();
+        return servletPath != null && pathMatcher.match("/auth/**", servletPath);
     }
 }

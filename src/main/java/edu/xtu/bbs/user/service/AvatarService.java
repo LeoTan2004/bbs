@@ -4,6 +4,7 @@ import com.qcloud.cos.COSClient;
 import com.qcloud.cos.http.HttpMethodName;
 import edu.xtu.bbs.user.config.AvatarConfiguration;
 import edu.xtu.bbs.user.exception.IllegalContentTypeException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.unit.DataSize;
@@ -13,6 +14,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class AvatarService {
 

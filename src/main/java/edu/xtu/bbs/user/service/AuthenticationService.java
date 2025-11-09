@@ -10,6 +10,7 @@ import edu.xtu.bbs.user.model.Status;
 import edu.xtu.bbs.user.model.User;
 import edu.xtu.bbs.user.repo.UserRepository;
 import edu.xtu.bbs.verification.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -24,6 +25,7 @@ import java.util.Objects;
  * provide:
  * <li>user registration</li>
  */
+@Slf4j
 @Service
 public class AuthenticationService {
 
@@ -60,6 +62,7 @@ public class AuthenticationService {
         if (userService.existsByEmail(email)) {
             throw new EmailAlreadyExistsException(email);
         }
+
         return verificationService.sendCode(email, BIND_EMAIL);
     }
 
@@ -78,6 +81,7 @@ public class AuthenticationService {
         if (!userService.existsByEmail(email)) {
             throw new EmailNotFoundException(email, "Email not found");
         }
+
         return verificationService.sendCode(email, LOGIN);
     }
 
@@ -98,6 +102,9 @@ public class AuthenticationService {
     public User register(CreateUserRequest request, VerificationParam verificationParam)
             throws UsernameOccupiedException, EmailAlreadyExistsException, InvalidVerificationException, VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationScopeIncorrectException, VerificationExpiredException {
 
+        if (request == null) {
+            throw new IllegalArgumentException("Invalid registration request");
+        }
 
         if (userService.existsByUsername(request.username())) {
             throw new UsernameOccupiedException(request.username());
@@ -110,6 +117,7 @@ public class AuthenticationService {
         if (!verify(verificationParam, BIND_EMAIL, request.email())) {
             throw new InvalidVerificationException();
         }
+
         User user = new User();
         user.setUsername(request.username());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
@@ -120,15 +128,16 @@ public class AuthenticationService {
         final String avatarUrl = avatarService.generateAvatarUrl(user.getUsername());
         user.setAvatarUrl(avatarUrl);
         user.setStatus(Status.Active);
+
         return userRepository.save(user);
     }
 
 
     public String preUpdatePassword(String email) throws EmailNotFoundException {
-
         if (!userService.existsByEmail(email)) {
             throw new EmailNotFoundException(email, "Email not found: " + email);
         }
+
         return verificationService.sendCode(email, CHANGE_PWD);
     }
 
@@ -143,12 +152,15 @@ public class AuthenticationService {
         if (verify(param, CHANGE_PWD, email)) {
             final String encodedNewPassword = passwordEncoder.encode(newPassword);
             final Integer userId = userRepository.findByEmail(email).map(User::getId).orElse(null);
+
             if (encodedNewPassword == null || userId == null) {
                 return false;
             }
+
             int updatedRows = userRepository.updatePasswordById(encodedNewPassword, userId);
             return updatedRows > 0;
         }
+
         return false;
     }
 
@@ -170,6 +182,7 @@ public class AuthenticationService {
         if (authentication == null || !authentication.isAuthenticated()) {
             return null; // or throw an exception if you prefer
         }
+
         if (authentication.getPrincipal() instanceof User user) {
             return user;
         } else if (authentication.getPrincipal() instanceof String username) {

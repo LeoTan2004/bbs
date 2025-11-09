@@ -8,11 +8,13 @@ import edu.xtu.bbs.user.service.AuthenticationService;
 import edu.xtu.bbs.user.service.AvatarService;
 import edu.xtu.bbs.user.service.UserService;
 import edu.xtu.bbs.user.vo.UploadRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -38,24 +40,34 @@ public class UserController {
 
     @PostMapping("/{username}/avatar")
     public String getAvatarUploadUrl(@PathVariable("username") String username, @RequestBody UploadRequest request) throws FileSizeLimitExceededException, IllegalContentTypeException {
+        if (request == null) {
+            throw new IllegalArgumentException("Invalid upload request");
+        }
+        
         final UserDetails currentUser = authenticationService.getCurrentUser();
         if (!currentUser.getUsername().equals(username)) {
             throw new SecurityException("You can only upload avatar for your own account.");
         }
+
         return avatarService.generateAvatarUploadUrl(currentUser.getUsername(), request.type(), DataSize.ofBytes(request.size()));
     }
 
     @PatchMapping("/{username}/profile")
     public UserDetails updateProfile(@PathVariable("username") String username, @RequestBody UpdateProfileRequest request) throws UserNotFoundException {
+        if (request == null) {
+            throw new IllegalArgumentException("Invalid update profile request");
+        }
+        
         final User currentUser = authenticationService.getCurrentUser();
         if (!currentUser.getUsername().equals(username)) {
             throw new SecurityException("You can only update your own profile.");
         }
+
         if (!userService.updateProfile(currentUser.getId(), request)) {
             throw new RuntimeException("Failed to update profile.");
         }
-        return userService.findByUsername(username);
 
+        return userService.findByUsername(username);
     }
 
 
