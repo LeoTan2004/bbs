@@ -5,6 +5,7 @@ import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;
 import com.qcloud.cos.auth.COSCredentials;
 import com.qcloud.cos.region.Region;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -14,10 +15,13 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "bbs.oss")
 @Component
 public class OssConfiguration {
+    @NotBlank
     private String secretId;
 
+    @NotBlank
     private String secretKey;
 
+    @NotBlank
     private String region;
 
     @Bean
