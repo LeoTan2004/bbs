@@ -36,7 +36,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserControllerSecurityTest {
 
     private static final String TEST_USERNAME = "testuser";
-    private static final String TEST_EMAIL = "testuser@example.com";
     private static final String TEST_NICKNAME = "Test User";
     private static final String TEST_BIO = "This is a test user bio.";
     private static final String TEST_PROFILE_SLUG = "test-user-slug";
@@ -71,7 +70,6 @@ class UserControllerSecurityTest {
         User user = new User();
         user.setId(1);
         user.setUsername(UserControllerSecurityTest.TEST_USERNAME);
-        user.setEmail(UserControllerSecurityTest.TEST_EMAIL);
         user.setNickname(nickname);
         user.setBio(bio);
         user.setProfileSlug(profileSlug);
@@ -89,7 +87,6 @@ class UserControllerSecurityTest {
         mockMvc.perform(get("/user"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.username").value(TEST_USERNAME))
-                .andExpect(jsonPath("$.data.email").value(TEST_EMAIL))
                 .andExpect(jsonPath("$.data.nickname").value(TEST_NICKNAME));
     }
 
@@ -102,7 +99,6 @@ class UserControllerSecurityTest {
         mockMvc.perform(get("/user/{username}", TEST_USERNAME))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.username").value(TEST_USERNAME))
-                .andExpect(jsonPath("$.data.email").value(TEST_EMAIL))
                 .andExpect(jsonPath("$.data.nickname").value(TEST_NICKNAME));
     }
 

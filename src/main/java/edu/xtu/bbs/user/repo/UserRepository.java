@@ -17,14 +17,7 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends CrudRepository<User, Integer> {
 
-    Optional<User> findByEmail(String email);
-
     Optional<User> findByUsername(String username);
-
-    @Transactional
-    @Modifying
-    @Query("update User u set u.email = :email where u.id = :id")
-    int updateEmailById(@NonNull @Param("email") String email, @NonNull @Param("id") Integer id);
 
     @Transactional
     @Query("update User u set u.passwordHash = :passwordHash where u.id = :id")
@@ -53,8 +46,6 @@ public interface UserRepository extends CrudRepository<User, Integer> {
     @Modifying
     @Query("update User u set u.status = :status where u.id = :id")
     int updateStatusById(@NonNull @Param("status") Status status, @Param("id") Integer id);
-
-    boolean existsByEmail(String email);
 
     boolean existsByUsername(String username);
 

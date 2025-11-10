@@ -42,7 +42,6 @@ public class VerifiedInfoRepositoryTest {
         testUser1 = new User();
         testUser1.setUsername("testuser1");
         testUser1.setPasswordHash("$2a$10$abcdefghijklmnopqrstuvwxyz");
-        testUser1.setEmail("test1@example.com");
         testUser1.setNickname("Test User 1");
         testUser1.setBio("This is test user 1");
         testUser1.setProfileSlug("test-user-1");
@@ -54,7 +53,6 @@ public class VerifiedInfoRepositoryTest {
         User testUser2 = new User();
         testUser2.setUsername("testuser2");
         testUser2.setPasswordHash("$2a$10$123456789abcdefghijklmnopq");
-        testUser2.setEmail("test2@example.com");
         testUser2.setNickname("Test User 2");
         testUser2.setBio("This is test user 2");
         testUser2.setProfileSlug("test-user-2");
@@ -84,7 +82,6 @@ public class VerifiedInfoRepositoryTest {
         User testUser3 = new User();
         testUser3.setUsername("testuser3");
         testUser3.setPasswordHash("$2a$10$987654321abcdefghijklmnop");
-        testUser3.setEmail("test3@example.com");
         testUser3.setNickname("Test User 3");
         testUser3.setRole(Role.User);
         testUser3.setStatus(Status.Active);
@@ -191,7 +188,6 @@ public class VerifiedInfoRepositoryTest {
         User userWithoutVerification = new User();
         userWithoutVerification.setUsername("unverifieduser");
         userWithoutVerification.setPasswordHash("$2a$10$password");
-        userWithoutVerification.setEmail("unverified@example.com");
         userWithoutVerification.setRole(Role.User);
         userWithoutVerification.setStatus(Status.Active);
         userWithoutVerification = entityManager.persistAndFlush(userWithoutVerification);
@@ -210,7 +206,6 @@ public class VerifiedInfoRepositoryTest {
         User newUser = new User();
         newUser.setUsername("newuser");
         newUser.setPasswordHash("$2a$10$newpassword");
-        newUser.setEmail("newuser@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
         newUser = entityManager.persistAndFlush(newUser);

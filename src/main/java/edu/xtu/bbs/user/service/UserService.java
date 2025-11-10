@@ -18,9 +18,11 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserBinderService userBinderService;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, UserBinderService userBinderService) {
         this.userRepository = userRepository;
+        this.userBinderService = userBinderService;
     }
 
     // Query Method
@@ -36,7 +38,7 @@ public class UserService {
     }
 
     public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
+        return userBinderService.existsByEmail(email);
     }
 
     public boolean existsByUsername(String username) {

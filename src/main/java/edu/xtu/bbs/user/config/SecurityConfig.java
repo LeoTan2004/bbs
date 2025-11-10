@@ -6,6 +6,7 @@ import edu.xtu.bbs.user.filter.JwtAuthorizationFilter;
 import edu.xtu.bbs.user.filter.JwtEmailCodeAuthenticationFilter;
 import edu.xtu.bbs.user.filter.JwtUsernamePasswordAuthenticationFilter;
 import edu.xtu.bbs.user.repo.UserRepository;
+import edu.xtu.bbs.user.service.UserBinderService;
 import edu.xtu.bbs.user.service.UserService;
 import edu.xtu.bbs.verification.VerificationService;
 import org.springframework.context.annotation.Bean;
@@ -34,11 +35,11 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder, VerificationService verificationService, UserRepository userRepository, UserService userService) {
+    public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder, VerificationService verificationService, UserRepository userRepository, UserService userService, UserBinderService userBinderService) {
         final DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(userService::findByUsername);
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
 
-        final EmailCodeAuthenticationProvider emailCodeAuthenticationProvider = new EmailCodeAuthenticationProvider(verificationService, userRepository);
+        final EmailCodeAuthenticationProvider emailCodeAuthenticationProvider = new EmailCodeAuthenticationProvider(verificationService, userRepository, userBinderService);
 
         return new ProviderManager(daoAuthenticationProvider, emailCodeAuthenticationProvider);
 

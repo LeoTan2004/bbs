@@ -46,6 +46,9 @@ class AuthenticationServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private UserBinderService userBinderService;
+
     @InjectMocks
     private AuthenticationService authenticationService;
 
@@ -76,7 +79,6 @@ class AuthenticationServiceTest {
         user.setId(1);
         user.setUsername("testuser");
         user.setPasswordHash("$2a$10$encodedPassword");
-        user.setEmail("test@example.com");
         user.setNickname("Test User");
         user.setBio("Test bio");
         user.setRole(Role.User);
@@ -178,7 +180,6 @@ class AuthenticationServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getUsername()).isEqualTo("testuser");
-        assertThat(result.getEmail()).isEqualTo("test@example.com");
 
         // Verify user creation
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -187,7 +188,6 @@ class AuthenticationServiceTest {
 
         assertThat(capturedUser.getUsername()).isEqualTo(createUserRequest.username());
         assertThat(capturedUser.getPasswordHash()).isEqualTo(encodedPassword);
-        assertThat(capturedUser.getEmail()).isEqualTo(createUserRequest.email());
         assertThat(capturedUser.getNickname()).isEqualTo(createUserRequest.nickname());
         assertThat(capturedUser.getBio()).isEqualTo(createUserRequest.bio());
         assertThat(capturedUser.getRole()).isEqualTo(Role.User);
@@ -199,6 +199,7 @@ class AuthenticationServiceTest {
         verify(verificationService).verifyCode(verificationParam);
         verify(passwordEncoder).encode(createUserRequest.password());
         verify(avatarService).generateAvatarUrl(createUserRequest.username());
+        verify(userBinderService).bindEmail(result, createUserRequest.email());
     }
 
     @Test
@@ -354,7 +355,7 @@ class AuthenticationServiceTest {
         when(userService.existsByEmail(email)).thenReturn(true);
         when(verificationService.verifyCode(passwordParam)).thenReturn(true);
         when(passwordEncoder.encode(newPassword)).thenReturn(encodedPassword);
-        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
+        when(userBinderService.findUserIdByEmail(email)).thenReturn(java.util.Optional.of(userId));
         when(userRepository.updatePasswordById(encodedPassword, userId)).thenReturn(1);
 
         // When
@@ -365,7 +366,7 @@ class AuthenticationServiceTest {
         verify(userService).existsByEmail(email);
         verify(verificationService).verifyCode(passwordParam);
         verify(passwordEncoder).encode(newPassword);
-        verify(userRepository).findByEmail(email);
+        verify(userBinderService).findUserIdByEmail(email);
         verify(userRepository).updatePasswordById(encodedPassword, userId);
     }
 
@@ -388,7 +389,7 @@ class AuthenticationServiceTest {
         when(userService.existsByEmail(email)).thenReturn(true);
         when(verificationService.verifyCode(passwordParam)).thenReturn(true);
         when(passwordEncoder.encode(newPassword)).thenReturn(encodedPassword);
-        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
+        when(userBinderService.findUserIdByEmail(email)).thenReturn(java.util.Optional.of(userId));
         when(userRepository.updatePasswordById(encodedPassword, userId)).thenReturn(0);
 
         // When
@@ -399,7 +400,7 @@ class AuthenticationServiceTest {
         verify(userService).existsByEmail(email);
         verify(verificationService).verifyCode(passwordParam);
         verify(passwordEncoder).encode(newPassword);
-        verify(userRepository).findByEmail(email);
+        verify(userBinderService).findUserIdByEmail(email);
         verify(userRepository).updatePasswordById(encodedPassword, userId);
     }
 
@@ -515,6 +516,7 @@ class AuthenticationServiceTest {
         // Given
         String email = "test@example.com";
         String newPassword = "newpassword123";
+        Integer userId = 1;
 
         VerificationParam passwordParam = new VerificationParam(
                 email,
@@ -526,7 +528,7 @@ class AuthenticationServiceTest {
         when(userService.existsByEmail(email)).thenReturn(true);
         when(verificationService.verifyCode(passwordParam)).thenReturn(true);
         when(passwordEncoder.encode(newPassword)).thenReturn(null);
-        when(userRepository.findByEmail(email)).thenReturn(java.util.Optional.of(testUser));
+        when(userBinderService.findUserIdByEmail(email)).thenReturn(java.util.Optional.of(userId));
 
         // When
         boolean result = authenticationService.updatePassword(email, newPassword, passwordParam);
@@ -536,7 +538,7 @@ class AuthenticationServiceTest {
         verify(userService).existsByEmail(email);
         verify(verificationService).verifyCode(passwordParam);
         verify(passwordEncoder).encode(newPassword);
-        verify(userRepository).findByEmail(email);
+        verify(userBinderService).findUserIdByEmail(email);
         verify(userRepository, never()).updatePasswordById(anyString(), anyInt());
     }
 

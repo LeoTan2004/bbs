@@ -38,13 +38,15 @@ public class AuthenticationService {
     private final AvatarService avatarService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final UserBinderService userBinderService;
 
-    public AuthenticationService(UserService userService, VerificationService verificationService, AvatarService avatarService, PasswordEncoder passwordEncoder, UserRepository userRepository) {
+    public AuthenticationService(UserService userService, VerificationService verificationService, AvatarService avatarService, PasswordEncoder passwordEncoder, UserRepository userRepository, UserBinderService userBinderService) {
         this.userService = userService;
         this.verificationService = verificationService;
         this.avatarService = avatarService;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
+        this.userBinderService = userBinderService;
     }
 
 
@@ -121,7 +123,6 @@ public class AuthenticationService {
         User user = new User();
         user.setUsername(request.username());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setEmail(request.email());
         user.setNickname(request.nickname());
         user.setBio(request.bio());
         user.setRole(Role.User);
@@ -129,7 +130,12 @@ public class AuthenticationService {
         user.setAvatarUrl(avatarUrl);
         user.setStatus(Status.Active);
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // 绑定邮箱到用户
+        userBinderService.bindEmail(savedUser, request.email());
+
+        return savedUser;
     }
 
 
@@ -151,7 +157,7 @@ public class AuthenticationService {
 
         if (verify(param, CHANGE_PWD, email)) {
             final String encodedNewPassword = passwordEncoder.encode(newPassword);
-            final Integer userId = userRepository.findByEmail(email).map(User::getId).orElse(null);
+            final Integer userId = userBinderService.findUserIdByEmail(email).orElse(null);
 
             if (encodedNewPassword == null || userId == null) {
                 return false;

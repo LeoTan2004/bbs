@@ -34,7 +34,6 @@ public class UserRepositoryTest {
         User testUser1 = new User();
         testUser1.setUsername("testuser1");
         testUser1.setPasswordHash("$2a$10$abcdefghijklmnopqrstuvwxyz");
-        testUser1.setEmail("test1@example.com");
         testUser1.setNickname("Test User 1");
         testUser1.setBio("This is test user 1");
         testUser1.setProfileSlug("test-user-1");
@@ -46,7 +45,6 @@ public class UserRepositoryTest {
         User testUser2 = new User();
         testUser2.setUsername("testuser2");
         testUser2.setPasswordHash("$2a$10$123456789abcdefghijklmnopq");
-        testUser2.setEmail("test2@example.com");
         testUser2.setNickname("Test User 2");
         testUser2.setBio("This is test user 2");
         testUser2.setProfileSlug("test-user-2");
@@ -59,7 +57,6 @@ public class UserRepositoryTest {
         User bannedUser = new User();
         bannedUser.setUsername("banneduser");
         bannedUser.setPasswordHash("$2a$10$bannedpasswordhash123456789");
-        bannedUser.setEmail("banned@example.com");
         bannedUser.setNickname("Banned User");
         bannedUser.setBio("This user is banned");
         bannedUser.setProfileSlug("banned-user");
@@ -68,34 +65,6 @@ public class UserRepositoryTest {
         entityManager.persistAndFlush(bannedUser);
 
         entityManager.clear(); // Clear persistence context
-    }
-
-    @Test
-    @DisplayName("Should return user when email exists")
-    void testFindByEmail_ExistingEmail_ShouldReturnUser() {
-        // Given
-        String email = "test1@example.com";
-
-        // When
-        Optional<User> result = userRepository.findByEmail(email);
-
-        // Then
-        assertThat(result).isPresent();
-        assertThat(result.get().getEmail()).isEqualTo(email);
-        assertThat(result.get().getUsername()).isEqualTo("testuser1");
-    }
-
-    @Test
-    @DisplayName("Should return empty when email does not exist")
-    void testFindByEmail_NonExistingEmail_ShouldReturnEmpty() {
-        // Given
-        String email = "nonexistent@example.com";
-
-        // When
-        Optional<User> result = userRepository.findByEmail(email);
-
-        // Then
-        assertThat(result).isEmpty();
     }
 
     @Test
@@ -110,7 +79,6 @@ public class UserRepositoryTest {
         // Then
         assertThat(result).isPresent();
         assertThat(result.get().getUsername()).isEqualTo(username);
-        assertThat(result.get().getEmail()).isEqualTo("test2@example.com");
         assertThat(result.get().getRole()).isEqualTo(Role.Admin);
     }
 
@@ -128,52 +96,12 @@ public class UserRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should update email when valid ID and email are provided")
-    void testUpdateEmailById_ValidIdAndEmail_ShouldUpdateEmail() {
-        // Given
-        User newUser = new User();
-        newUser.setUsername("newuser");
-        newUser.setPasswordHash("$2a$10$hashedpassword");
-        newUser.setEmail("newuser@example.com");
-        newUser.setRole(Role.User);
-        newUser.setStatus(Status.Active);
-        User savedUser = entityManager.persistAndFlush(newUser);
-
-        String newEmail = "updated@example.com";
-
-        // When
-        int updatedRows = userRepository.updateEmailById(newEmail, savedUser.getId());
-
-        // Then
-        assertThat(updatedRows).isEqualTo(1);
-
-        entityManager.clear(); // Clear the persistence context to force a fresh fetch
-        User updatedUser = entityManager.find(User.class, savedUser.getId());
-        assertThat(updatedUser.getEmail()).isEqualTo(newEmail);
-    }
-
-    @Test
-    @DisplayName("Should not update email when ID is invalid")
-    void testUpdateEmailById_InvalidId_ShouldNotUpdate() {
-        // Given
-        Integer invalidId = 99999;
-        String newEmail = "updated@example.com";
-
-        // When
-        int updatedRows = userRepository.updateEmailById(newEmail, invalidId);
-
-        // Then
-        assertThat(updatedRows).isEqualTo(0);
-    }
-
-    @Test
     @DisplayName("Should update password when valid ID and password are provided")
     void testUpdatePasswordById_ValidIdAndPassword_ShouldUpdatePassword() {
         // Given
         User newUser = new User();
         newUser.setUsername("pwduser");
         newUser.setPasswordHash("$2a$10$oldpassword");
-        newUser.setEmail("pwduser@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
         User savedUser = entityManager.persistAndFlush(newUser);
@@ -212,7 +140,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("profileuser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("profile@example.com");
         newUser.setNickname("Old Nickname");
         newUser.setBio("Old bio");
         newUser.setProfileSlug("old-slug");
@@ -244,7 +171,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("nulluser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("null@example.com");
         newUser.setNickname("Old Nickname");
         newUser.setBio("Old bio");
         newUser.setProfileSlug("old-slug");
@@ -285,7 +211,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("verifyuser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("verify@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
         User savedUser = entityManager.persistAndFlush(newUser);
@@ -310,7 +235,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("nullverifyuser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("nullverify@example.com");
         newUser.setVerifiedId(123);
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
@@ -334,7 +258,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("roleuser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("role@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
         User savedUser = entityManager.persistAndFlush(newUser);
@@ -373,7 +296,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("statususer");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("status@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
         User savedUser = entityManager.persistAndFlush(newUser);
@@ -412,7 +334,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("cruduser");
         newUser.setPasswordHash("$2a$10$hashedpassword");
-        newUser.setEmail("crud@example.com");
         newUser.setNickname("CRUD User");
         newUser.setBio("This is a CRUD test user");
         newUser.setProfileSlug("crud-user");
@@ -458,19 +379,16 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("transactionaluser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("transactional@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
         User savedUser = entityManager.persistAndFlush(newUser);
 
         // When - Test that @Transactional annotation works
         // The updateEmailById method is annotated with @Transactional
-        userRepository.updateEmailById("newtransactional@example.com", savedUser.getId());
 
         // Then - The change should be committed
         entityManager.clear();
         User updatedUser = entityManager.find(User.class, savedUser.getId());
-        assertThat(updatedUser.getEmail()).isEqualTo("newtransactional@example.com");
     }
 
     @Test
@@ -480,7 +398,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("audituser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("audit@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
 
@@ -511,7 +428,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("updateaudituser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("updateaudit@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
 
@@ -543,7 +459,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("repoupdateuser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("repoupdate@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
 
@@ -554,7 +469,6 @@ public class UserRepositoryTest {
         Thread.sleep(100);
 
         // When - Update using repository method
-        userRepository.updateEmailById("newrepoemail@example.com", savedUser.getId());
         entityManager.flush();
 
         // Clear cache and reload
@@ -565,7 +479,6 @@ public class UserRepositoryTest {
         assertThat(reloadedUser.getCreatedAt()).isEqualTo(originalCreatedAt); // CreatedAt should not change
         // Note: Custom update methods might not trigger @UpdateTimestamp
         // This depends on JPA implementation and how the update is executed
-        assertThat(reloadedUser.getEmail()).isEqualTo("newrepoemail@example.com");
     }
 
     @Test
@@ -590,7 +503,6 @@ public class UserRepositoryTest {
         User newUser = new User();
         newUser.setUsername("findtestuser");
         newUser.setPasswordHash("$2a$10$password");
-        newUser.setEmail("findtest@example.com");
         newUser.setRole(Role.User);
         newUser.setStatus(Status.Active);
 
@@ -601,7 +513,6 @@ public class UserRepositoryTest {
         java.time.Instant originalUpdatedAt = savedUser.getUpdatedAt();
 
         // When - Perform read operations
-        userRepository.findByEmail("findtest@example.com");
         userRepository.findByUsername("findtestuser");
         userRepository.findById(savedUser.getId());
         userRepository.count();

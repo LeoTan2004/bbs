@@ -4,7 +4,9 @@ import edu.xtu.bbs.user.exception.EmailAlreadyExistsException;
 import edu.xtu.bbs.user.exception.EmailNotFoundException;
 import edu.xtu.bbs.user.exception.InvalidVerificationException;
 import edu.xtu.bbs.user.exception.UsernameOccupiedException;
+import edu.xtu.bbs.user.model.User;
 import edu.xtu.bbs.user.service.AuthenticationService;
+import edu.xtu.bbs.user.service.UserBinderService;
 import edu.xtu.bbs.user.vo.*;
 import edu.xtu.bbs.verification.VerificationExpiredException;
 import edu.xtu.bbs.verification.VerificationRequestNotFoundException;
@@ -23,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthenticationService authenticationService;
+    private final UserBinderService userBinderService;
 
-    public AuthController(AuthenticationService authenticationService) {
+    public AuthController(AuthenticationService authenticationService, UserBinderService userBinderService) {
         this.authenticationService = authenticationService;
+        this.userBinderService = userBinderService;
     }
 
     @PostMapping("/register/send-code")
@@ -39,8 +43,10 @@ public class AuthController {
         if (registerVo == null || registerVo.getUser() == null) {
             throw new IllegalArgumentException("Invalid registration request");
         }
-        
-        String email = authenticationService.register(registerVo.getUser(), registerVo.getVerification()).getEmail();
+
+        User registeredUser = authenticationService.register(registerVo.getUser(), registerVo.getVerification());
+        String email = userBinderService.findEmailByUserId(registeredUser.getId())
+                .orElse(registerVo.getUser().email()); // 作为备用，使用请求中的邮箱
         return new RegisterResponse(email);
     }
 

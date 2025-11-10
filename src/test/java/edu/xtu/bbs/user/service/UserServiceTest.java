@@ -32,6 +32,9 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private UserBinderService userBinderService;
+
     @InjectMocks
     private UserService userService;
 
@@ -47,7 +50,6 @@ class UserServiceTest {
         user.setId(1);
         user.setUsername("testuser");
         user.setPasswordHash("$2a$10$encodedPassword");
-        user.setEmail("test@example.com");
         user.setNickname("Test User");
         user.setBio("Test bio");
         user.setProfileSlug("test-profile");
@@ -105,14 +107,14 @@ class UserServiceTest {
     void existsByEmail_WhenEmailExists_ShouldReturnTrue() {
         // Given
         String email = "test@example.com";
-        when(userRepository.existsByEmail(email)).thenReturn(true);
+        when(userBinderService.existsByEmail(email)).thenReturn(true);
 
         // When
         boolean result = userService.existsByEmail(email);
 
         // Then
         assertThat(result).isTrue();
-        verify(userRepository).existsByEmail(email);
+        verify(userBinderService).existsByEmail(email);
     }
 
     @Test
@@ -120,14 +122,14 @@ class UserServiceTest {
     void existsByEmail_WhenEmailDoesNotExist_ShouldReturnFalse() {
         // Given
         String email = "nonexistent@example.com";
-        when(userRepository.existsByEmail(email)).thenReturn(false);
+        when(userBinderService.existsByEmail(email)).thenReturn(false);
 
         // When
         boolean result = userService.existsByEmail(email);
 
         // Then
         assertThat(result).isFalse();
-        verify(userRepository).existsByEmail(email);
+        verify(userBinderService).existsByEmail(email);
     }
 
     @Test

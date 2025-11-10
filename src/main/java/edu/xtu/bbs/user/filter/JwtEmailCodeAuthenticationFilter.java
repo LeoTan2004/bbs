@@ -3,6 +3,7 @@ package edu.xtu.bbs.user.filter;
 import edu.xtu.bbs.user.exception.EmailNotFoundException;
 import edu.xtu.bbs.user.repo.UserRepository;
 import edu.xtu.bbs.user.service.JwtTokenService;
+import edu.xtu.bbs.user.service.UserBinderService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -26,20 +27,23 @@ public class JwtEmailCodeAuthenticationFilter extends AbstractJwtAuthenticationF
     public static final HttpMethod DEFAULT_LOGIN_METHOD = HttpMethod.POST;
 
     private final UserRepository userRepository;
+    private final UserBinderService userBinderService;
 
 
-    public JwtEmailCodeAuthenticationFilter(AuthenticationManager authenticationManager, UserRepository userRepository, JwtTokenService jwtTokenService) {
+    public JwtEmailCodeAuthenticationFilter(AuthenticationManager authenticationManager, UserRepository userRepository, JwtTokenService jwtTokenService, UserBinderService userBinderService) {
         super(PathPatternRequestMatcher.withDefaults().matcher(DEFAULT_LOGIN_METHOD, DEFAULT_LOGIN_URL), authenticationManager, jwtTokenService);
         this.userRepository = userRepository;
+        this.userBinderService = userBinderService;
     }
 
 
     @Override
     protected String getUsername(Authentication authResult) {
         final String email = authResult.getPrincipal().toString();
-        return userRepository.findByEmail(email).orElseThrow(
-                () -> new RuntimeException(new EmailNotFoundException(email, "could not find user with email"))
-        ).getUsername();
+        return userBinderService.findUserIdByEmail(email)
+                .flatMap(userRepository::findById)
+                .orElseThrow(() -> new RuntimeException(new EmailNotFoundException(email, "could not find user with email")))
+                .getUsername();
     }
 
     @Override
