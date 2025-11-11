@@ -80,7 +80,7 @@ class UserControllerSecurityTest {
 
     @Test
     @DisplayName("Test Get Current User - With Mock User Annotation")
-    @WithMockUser(username = TEST_USERNAME, roles = {"USER"})
+    @WithMockUser(username = TEST_USERNAME)
     void testGetCurrentUserWithAnnotation() throws Exception {
         when(authenticationService.getCurrentUser()).thenReturn(mockUser);
 

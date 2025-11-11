@@ -388,7 +388,7 @@ public class UserRepositoryTest {
 
         // Then - The change should be committed
         entityManager.clear();
-        User updatedUser = entityManager.find(User.class, savedUser.getId());
+        entityManager.find(User.class, savedUser.getId());
     }
 
     @Test

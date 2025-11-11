@@ -24,31 +24,31 @@ public class UserBinderService {
     }
 
     /**
-     * 为用户绑定邮箱
+     * Bind email for user
      */
     public UserBinder bindEmail(User user, String email) throws EmailAlreadyExistsException {
         return bindIdentifier(user.getId(), BindType.EMAIL, email);
     }
 
     /**
-     * 为用户绑定标识符
+     * Bind identifier for user
      */
     public UserBinder bindIdentifier(Integer userId, BindType bindType, String identifier) {
-        // 检查是否已经被其他用户绑定
+        // Check if already bound by another user
         if (userBinderRepository.existsByIdentifierAndBindType(identifier, bindType)) {
             throw new RuntimeException("Identifier " + identifier + " of type " + bindType + " is already bound to another user");
         }
 
-        // 检查用户是否已经绑定了该类型
+        // Check if user has already bound this type
         Optional<UserBinder> existing = userBinderRepository.findByUserIdAndBindType(userId, bindType);
 
         UserBinder userBinder;
         if (existing.isPresent()) {
-            // 更新现有绑定
+            // Update existing binding
             userBinder = existing.get();
             userBinder.setIdentifier(identifier);
         } else {
-            // 创建新绑定
+            // Create new binding
             userBinder = new UserBinder();
             userBinder.setUserId(userId);
             userBinder.setBindType(bindType);
@@ -59,7 +59,7 @@ public class UserBinderService {
     }
 
     /**
-     * 根据邮箱查找用户ID
+     * Find user ID by email
      */
     @Transactional(readOnly = true)
     public Optional<Integer> findUserIdByEmail(String email) {
@@ -68,7 +68,7 @@ public class UserBinderService {
     }
 
     /**
-     * 根据用户ID查找邮箱
+     * Find email by user ID
      */
     @Transactional(readOnly = true)
     public Optional<String> findEmailByUserId(Integer userId) {
@@ -77,7 +77,7 @@ public class UserBinderService {
     }
 
     /**
-     * 检查邮箱是否已存在
+     * Check if email already exists
      */
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
@@ -85,7 +85,7 @@ public class UserBinderService {
     }
 
     /**
-     * 检查用户是否已绑定邮箱
+     * Check if user has bound email
      */
     @Transactional(readOnly = true)
     public boolean userHasEmail(Integer userId) {
@@ -93,7 +93,7 @@ public class UserBinderService {
     }
 
     /**
-     * 获取用户的所有绑定信息
+     * Get all binding information for user
      */
     @Transactional(readOnly = true)
     public List<UserBinder> getUserBinders(Integer userId) {
@@ -101,7 +101,7 @@ public class UserBinderService {
     }
 
     /**
-     * 删除用户的邮箱绑定
+     * Remove user's email binding
      */
     public boolean unbindEmail(Integer userId) {
         int deleted = userBinderRepository.deleteByUserIdAndBindType(userId, BindType.EMAIL);
@@ -109,10 +109,10 @@ public class UserBinderService {
     }
 
     /**
-     * 更新用户的邮箱绑定
+     * Update user's email binding
      */
     public boolean updateEmail(Integer userId, String newEmail) {
-        // 检查新邮箱是否已被其他用户绑定
+        // Check if new email is already bound by another user
         if (userBinderRepository.existsByIdentifierAndBindType(newEmail, BindType.EMAIL)) {
             Optional<UserBinder> existingBinder = userBinderRepository.findByIdentifierAndBindType(newEmail, BindType.EMAIL);
             if (existingBinder.isPresent() && !existingBinder.get().getUserId().equals(userId)) {

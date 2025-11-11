@@ -46,7 +46,7 @@ public class AuthController {
 
         User registeredUser = authenticationService.register(registerVo.getUser(), registerVo.getVerification());
         String email = userBinderService.findEmailByUserId(registeredUser.getId())
-                .orElse(registerVo.getUser().email()); // 作为备用，使用请求中的邮箱
+                .orElse(registerVo.getUser().email()); // Fallback to email from request
         return new RegisterResponse(email);
     }
 

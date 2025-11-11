@@ -64,17 +64,17 @@ public class VerifiedInfoRepositoryTest {
         // Create test verified info
         verifiedInfo1 = new VerifiedInfo();
         verifiedInfo1.setUser(testUser1);
-        verifiedInfo1.setFullName("张三");
+        verifiedInfo1.setFullName("John Smith");
         verifiedInfo1.setSid("2021001001");
-        verifiedInfo1.setInstitution("湘潭大学");
+        verifiedInfo1.setInstitution("Xiangtan University");
         verifiedInfo1.setVisible(true);
         verifiedInfo1 = entityManager.persistAndFlush(verifiedInfo1);
 
         VerifiedInfo verifiedInfo2 = new VerifiedInfo();
         verifiedInfo2.setUser(testUser2);
-        verifiedInfo2.setFullName("李四");
+        verifiedInfo2.setFullName("Jane Doe");
         verifiedInfo2.setSid("2021001002");
-        verifiedInfo2.setInstitution("湘潭大学");
+        verifiedInfo2.setInstitution("Xiangtan University");
         verifiedInfo2.setVisible(false);
         entityManager.persistAndFlush(verifiedInfo2);
 
@@ -89,9 +89,9 @@ public class VerifiedInfoRepositoryTest {
 
         VerifiedInfo verifiedInfo3 = new VerifiedInfo();
         verifiedInfo3.setUser(testUser3);
-        verifiedInfo3.setFullName("王五");
+        verifiedInfo3.setFullName("Mike Johnson");
         verifiedInfo3.setSid("2021002001");
-        verifiedInfo3.setInstitution("中南大学");
+        verifiedInfo3.setInstitution("Central South University");
         verifiedInfo3.setVisible(true);
         entityManager.persistAndFlush(verifiedInfo3);
 
@@ -102,7 +102,7 @@ public class VerifiedInfoRepositoryTest {
     @DisplayName("Should return page of verified info when institution exists")
     void testFindByInstitution_ExistingInstitution_ShouldReturnPageOfVerifiedInfo() {
         // Given
-        String institution = "湘潭大学";
+        String institution = "Xiangtan University";
         Pageable pageable = PageRequest.of(0, 10);
 
         // When
@@ -115,14 +115,14 @@ public class VerifiedInfoRepositoryTest {
         assertThat(result.getContent()).extracting(VerifiedInfo::getInstitution)
                 .allMatch(inst -> inst.equals(institution));
         assertThat(result.getContent()).extracting(VerifiedInfo::getFullName)
-                .containsExactlyInAnyOrder("张三", "李四");
+                .containsExactlyInAnyOrder("John Smith", "Jane Doe");
     }
 
     @Test
     @DisplayName("Should return empty page when institution does not exist")
     void testFindByInstitution_NonExistingInstitution_ShouldReturnEmptyPage() {
         // Given
-        String institution = "清华大学";
+        String institution = "Tsinghua University";
         Pageable pageable = PageRequest.of(0, 10);
 
         // When
@@ -138,7 +138,7 @@ public class VerifiedInfoRepositoryTest {
     @DisplayName("Should respect page size when pagination is used")
     void testFindByInstitution_WithPagination_ShouldRespectPageSize() {
         // Given
-        String institution = "湘潭大学";
+        String institution = "Xiangtan University";
         Pageable pageable = PageRequest.of(0, 1); // Page size of 1
 
         // When
@@ -161,9 +161,9 @@ public class VerifiedInfoRepositoryTest {
         // Then
         assertThat(result).isPresent();
         assertThat(result.get().getUser().getId()).isEqualTo(testUser1.getId());
-        assertThat(result.get().getFullName()).isEqualTo("张三");
+        assertThat(result.get().getFullName()).isEqualTo("John Smith");
         assertThat(result.get().getSid()).isEqualTo("2021001001");
-        assertThat(result.get().getInstitution()).isEqualTo("湘潭大学");
+        assertThat(result.get().getInstitution()).isEqualTo("Xiangtan University");
         assertThat(result.get().getVisible()).isTrue();
     }
 
@@ -212,9 +212,9 @@ public class VerifiedInfoRepositoryTest {
 
         VerifiedInfo newVerifiedInfo = new VerifiedInfo();
         newVerifiedInfo.setUser(newUser);
-        newVerifiedInfo.setFullName("赵六");
+        newVerifiedInfo.setFullName("Alex Brown");
         newVerifiedInfo.setSid("2021003001");
-        newVerifiedInfo.setInstitution("北京大学");
+        newVerifiedInfo.setInstitution("Peking University");
         newVerifiedInfo.setVisible(true);
 
         // When
@@ -223,9 +223,9 @@ public class VerifiedInfoRepositoryTest {
         // Then
         assertThat(savedVerifiedInfo).isNotNull();
         assertThat(savedVerifiedInfo.getId()).isNotNull();
-        assertThat(savedVerifiedInfo.getFullName()).isEqualTo("赵六");
+        assertThat(savedVerifiedInfo.getFullName()).isEqualTo("Alex Brown");
         assertThat(savedVerifiedInfo.getSid()).isEqualTo("2021003001");
-        assertThat(savedVerifiedInfo.getInstitution()).isEqualTo("北京大学");
+        assertThat(savedVerifiedInfo.getInstitution()).isEqualTo("Peking University");
         assertThat(savedVerifiedInfo.getVisible()).isTrue();
         assertThat(savedVerifiedInfo.getVerifiedAt()).isNotNull();
 
@@ -233,7 +233,7 @@ public class VerifiedInfoRepositoryTest {
         entityManager.clear();
         VerifiedInfo foundVerifiedInfo = entityManager.find(VerifiedInfo.class, savedVerifiedInfo.getId());
         assertThat(foundVerifiedInfo).isNotNull();
-        assertThat(foundVerifiedInfo.getFullName()).isEqualTo("赵六");
+        assertThat(foundVerifiedInfo.getFullName()).isEqualTo("Alex Brown");
     }
 
     @Test
@@ -245,7 +245,7 @@ public class VerifiedInfoRepositoryTest {
         // Then
         assertThat(result).isPresent();
         assertThat(result.get().getId()).isEqualTo(verifiedInfo1.getId());
-        assertThat(result.get().getFullName()).isEqualTo("张三");
+        assertThat(result.get().getFullName()).isEqualTo("John Smith");
     }
 
     @Test
@@ -312,6 +312,6 @@ public class VerifiedInfoRepositoryTest {
         // Then
         assertThat(result).hasSize(3);
         assertThat(result).extracting(VerifiedInfo::getFullName)
-                .containsExactlyInAnyOrder("张三", "李四", "王五");
+                .containsExactlyInAnyOrder("John Smith", "Jane Doe", "Mike Johnson");
     }
 }

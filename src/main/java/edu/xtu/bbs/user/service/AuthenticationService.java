@@ -132,7 +132,7 @@ public class AuthenticationService {
 
         User savedUser = userRepository.save(user);
 
-        // 绑定邮箱到用户
+        // Bind email to user
         userBinderService.bindEmail(savedUser, request.email());
 
         return savedUser;

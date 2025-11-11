@@ -36,7 +36,7 @@ public class EmailCodeAuthenticationProvider implements AuthenticationProvider {
                     throw new BadCredentialsException("code was not correct");
                 }
                 final UserDetails user = userBinderService.findUserIdByEmail(verificationParam.principle())
-                        .flatMap(userId -> userRepository.findById(userId))
+                        .flatMap(userRepository::findById)
                         .map(u -> (UserDetails) u)
                         .orElseThrow(() -> new UsernameNotFoundException("Could not find user", new EmailNotFoundException(verificationParam.principle(), "Cannot find user with email")));
                 final EmailCodeAuthenticationToken authenticationToken = new EmailCodeAuthenticationToken(user.getUsername(), user.getAuthorities());

@@ -52,13 +52,12 @@ class AuthenticationServiceTest {
     @InjectMocks
     private AuthenticationService authenticationService;
 
-    private User testUser;
     private CreateUserRequest createUserRequest;
     private VerificationParam verificationParam;
 
     @BeforeEach
     void setUp() {
-        testUser = createTestUser();
+        User testUser = createTestUser();
         createUserRequest = new CreateUserRequest(
                 "testuser",
                 "password123",

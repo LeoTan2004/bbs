@@ -37,7 +37,7 @@ public class UserBinder {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    // 关联用户
+    // Associated user
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;

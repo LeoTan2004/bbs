@@ -17,32 +17,32 @@ import java.util.Optional;
 public interface UserBinderRepository extends CrudRepository<UserBinder, Integer> {
 
     /**
-     * 根据用户ID查找所有绑定信息
+     * Find all binding information by user ID
      */
     List<UserBinder> findByUserId(Integer userId);
 
     /**
-     * 根据用户ID和绑定类型查找绑定信息
+     * Find binding information by user ID and bind type
      */
     Optional<UserBinder> findByUserIdAndBindType(Integer userId, BindType bindType);
 
     /**
-     * 根据标识符和绑定类型查找绑定信息
+     * Find binding information by identifier and bind type
      */
     Optional<UserBinder> findByIdentifierAndBindType(String identifier, BindType bindType);
 
     /**
-     * 检查标识符和绑定类型是否已存在
+     * Check if identifier and bind type combination already exists
      */
     boolean existsByIdentifierAndBindType(String identifier, BindType bindType);
 
     /**
-     * 检查用户是否已绑定该类型
+     * Check if user has already bound this type
      */
     boolean existsByUserIdAndBindType(Integer userId, BindType bindType);
 
     /**
-     * 删除用户的特定绑定类型
+     * Delete user's specific bind type
      */
     @Transactional
     @Modifying
@@ -50,7 +50,7 @@ public interface UserBinderRepository extends CrudRepository<UserBinder, Integer
     int deleteByUserIdAndBindType(@NonNull @Param("userId") Integer userId, @NonNull @Param("bindType") BindType bindType);
 
     /**
-     * 更新绑定的标识符
+     * Update binding identifier
      */
     @Transactional
     @Modifying
