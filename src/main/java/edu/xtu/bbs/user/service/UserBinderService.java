@@ -31,6 +31,20 @@ public class UserBinderService {
     }
 
     /**
+     * Bind WeChat for user
+     */
+    public UserBinder bindWeChat(User user, String openId) {
+        return bindIdentifier(user.getId(), BindType.WECHAT, openId);
+    }
+
+    /**
+     * Bind WeChat for user by user ID
+     */
+    public UserBinder bindWeChat(Integer userId, String openId) {
+        return bindIdentifier(userId, BindType.WECHAT, openId);
+    }
+
+    /**
      * Bind identifier for user
      */
     public UserBinder bindIdentifier(Integer userId, BindType bindType, String identifier) {
@@ -77,6 +91,24 @@ public class UserBinderService {
     }
 
     /**
+     * Find user ID by WeChat openid
+     */
+    @Transactional(readOnly = true)
+    public Optional<Integer> findUserIdByWeChatOpenId(String openId) {
+        return userBinderRepository.findByIdentifierAndBindType(openId, BindType.WECHAT)
+                .map(UserBinder::getUserId);
+    }
+
+    /**
+     * Find WeChat openid by user ID
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> findWeChatOpenIdByUserId(Integer userId) {
+        return userBinderRepository.findByUserIdAndBindType(userId, BindType.WECHAT)
+                .map(UserBinder::getIdentifier);
+    }
+
+    /**
      * Check if email already exists
      */
     @Transactional(readOnly = true)
@@ -85,11 +117,27 @@ public class UserBinderService {
     }
 
     /**
+     * Check if WeChat openid already exists
+     */
+    @Transactional(readOnly = true)
+    public boolean existsByWeChatOpenId(String openId) {
+        return userBinderRepository.existsByIdentifierAndBindType(openId, BindType.WECHAT);
+    }
+
+    /**
      * Check if user has bound email
      */
     @Transactional(readOnly = true)
     public boolean userHasEmail(Integer userId) {
         return userBinderRepository.existsByUserIdAndBindType(userId, BindType.EMAIL);
+    }
+
+    /**
+     * Check if user has bound WeChat
+     */
+    @Transactional(readOnly = true)
+    public boolean userHasWeChatBinding(Integer userId) {
+        return userBinderRepository.existsByUserIdAndBindType(userId, BindType.WECHAT);
     }
 
     /**
@@ -109,6 +157,14 @@ public class UserBinderService {
     }
 
     /**
+     * Remove user's WeChat binding
+     */
+    public boolean unbindWeChat(Integer userId) {
+        int deleted = userBinderRepository.deleteByUserIdAndBindType(userId, BindType.WECHAT);
+        return deleted > 0;
+    }
+
+    /**
      * Update user's email binding
      */
     public boolean updateEmail(Integer userId, String newEmail) {
@@ -121,6 +177,22 @@ public class UserBinderService {
         }
 
         int updated = userBinderRepository.updateIdentifierByUserIdAndBindType(newEmail, userId, BindType.EMAIL);
+        return updated > 0;
+    }
+
+    /**
+     * Update user's WeChat binding
+     */
+    public boolean updateWeChatOpenId(Integer userId, String newOpenId) {
+        // Check if new openId is already bound by another user
+        if (userBinderRepository.existsByIdentifierAndBindType(newOpenId, BindType.WECHAT)) {
+            Optional<UserBinder> existingBinder = userBinderRepository.findByIdentifierAndBindType(newOpenId, BindType.WECHAT);
+            if (existingBinder.isPresent() && !existingBinder.get().getUserId().equals(userId)) {
+                throw new RuntimeException("WeChat OpenID " + newOpenId + " is already bound to another user");
+            }
+        }
+
+        int updated = userBinderRepository.updateIdentifierByUserIdAndBindType(newOpenId, userId, BindType.WECHAT);
         return updated > 0;
     }
 }

@@ -464,4 +464,353 @@ class UserBinderServiceTest {
 
         verify(userBinderRepository).existsByUserIdAndBindType(null, BindType.EMAIL);
     }
+
+    // WeChat related tests
+
+    @Test
+    @DisplayName("Should bind WeChat successfully with User object")
+    void bindWeChat_WithUser_WhenOpenIdDoesNotExist_ShouldReturnUserBinder() {
+        // Given
+        String openId = "wechat_openid_123";
+        UserBinder weChatBinder = new UserBinder();
+        weChatBinder.setId(2);
+        weChatBinder.setUserId(testUser.getId());
+        weChatBinder.setBindType(BindType.WECHAT);
+        weChatBinder.setIdentifier(openId);
+
+        when(userBinderRepository.existsByIdentifierAndBindType(openId, BindType.WECHAT)).thenReturn(false);
+        when(userBinderRepository.findByUserIdAndBindType(testUser.getId(), BindType.WECHAT)).thenReturn(Optional.empty());
+        when(userBinderRepository.save(isA(UserBinder.class))).thenReturn(weChatBinder);
+
+        // When
+        UserBinder result = userBinderService.bindWeChat(testUser, openId);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getUserId()).isEqualTo(testUser.getId());
+        assertThat(result.getBindType()).isEqualTo(BindType.WECHAT);
+        assertThat(result.getIdentifier()).isEqualTo(openId);
+
+        verify(userBinderRepository).existsByIdentifierAndBindType(openId, BindType.WECHAT);
+        verify(userBinderRepository).findByUserIdAndBindType(testUser.getId(), BindType.WECHAT);
+        verify(userBinderRepository).save(isA(UserBinder.class));
+    }
+
+    @Test
+    @DisplayName("Should bind WeChat successfully with user ID")
+    void bindWeChat_WithUserId_WhenOpenIdDoesNotExist_ShouldReturnUserBinder() {
+        // Given
+        Integer userId = 1;
+        String openId = "wechat_openid_123";
+        UserBinder weChatBinder = new UserBinder();
+        weChatBinder.setId(2);
+        weChatBinder.setUserId(userId);
+        weChatBinder.setBindType(BindType.WECHAT);
+        weChatBinder.setIdentifier(openId);
+
+        when(userBinderRepository.existsByIdentifierAndBindType(openId, BindType.WECHAT)).thenReturn(false);
+        when(userBinderRepository.findByUserIdAndBindType(userId, BindType.WECHAT)).thenReturn(Optional.empty());
+        when(userBinderRepository.save(isA(UserBinder.class))).thenReturn(weChatBinder);
+
+        // When
+        UserBinder result = userBinderService.bindWeChat(userId, openId);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getUserId()).isEqualTo(userId);
+        assertThat(result.getBindType()).isEqualTo(BindType.WECHAT);
+        assertThat(result.getIdentifier()).isEqualTo(openId);
+
+        verify(userBinderRepository).existsByIdentifierAndBindType(openId, BindType.WECHAT);
+        verify(userBinderRepository).findByUserIdAndBindType(userId, BindType.WECHAT);
+        verify(userBinderRepository).save(isA(UserBinder.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when WeChat openId already exists")
+    void bindWeChat_WhenOpenIdExists_ShouldThrowException() {
+        // Given
+        String openId = "existing_wechat_openid";
+        when(userBinderRepository.existsByIdentifierAndBindType(openId, BindType.WECHAT)).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> userBinderService.bindWeChat(testUser, openId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Identifier " + openId + " of type " + BindType.WECHAT + " is already bound to another user");
+
+        verify(userBinderRepository).existsByIdentifierAndBindType(openId, BindType.WECHAT);
+        verifyNoMoreInteractions(userBinderRepository);
+    }
+
+    @Test
+    @DisplayName("Should find user ID by WeChat openId")
+    void findUserIdByWeChatOpenId_WhenOpenIdExists_ShouldReturnUserId() {
+        // Given
+        String openId = "wechat_openid_123";
+        Integer expectedUserId = 1;
+        UserBinder weChatBinder = new UserBinder();
+        weChatBinder.setUserId(expectedUserId);
+        weChatBinder.setBindType(BindType.WECHAT);
+        weChatBinder.setIdentifier(openId);
+
+        when(userBinderRepository.findByIdentifierAndBindType(openId, BindType.WECHAT))
+                .thenReturn(Optional.of(weChatBinder));
+
+        // When
+        Optional<Integer> result = userBinderService.findUserIdByWeChatOpenId(openId);
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get()).isEqualTo(expectedUserId);
+
+        verify(userBinderRepository).findByIdentifierAndBindType(openId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should return empty when WeChat openId does not exist")
+    void findUserIdByWeChatOpenId_WhenOpenIdDoesNotExist_ShouldReturnEmpty() {
+        // Given
+        String openId = "nonexistent_wechat_openid";
+        when(userBinderRepository.findByIdentifierAndBindType(openId, BindType.WECHAT))
+                .thenReturn(Optional.empty());
+
+        // When
+        Optional<Integer> result = userBinderService.findUserIdByWeChatOpenId(openId);
+
+        // Then
+        assertThat(result).isEmpty();
+
+        verify(userBinderRepository).findByIdentifierAndBindType(openId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should find WeChat openId by user ID")
+    void findWeChatOpenIdByUserId_WhenUserHasWeChatBinding_ShouldReturnOpenId() {
+        // Given
+        Integer userId = 1;
+        String expectedOpenId = "wechat_openid_123";
+        UserBinder weChatBinder = new UserBinder();
+        weChatBinder.setUserId(userId);
+        weChatBinder.setBindType(BindType.WECHAT);
+        weChatBinder.setIdentifier(expectedOpenId);
+
+        when(userBinderRepository.findByUserIdAndBindType(userId, BindType.WECHAT))
+                .thenReturn(Optional.of(weChatBinder));
+
+        // When
+        Optional<String> result = userBinderService.findWeChatOpenIdByUserId(userId);
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get()).isEqualTo(expectedOpenId);
+
+        verify(userBinderRepository).findByUserIdAndBindType(userId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should return empty when user has no WeChat binding")
+    void findWeChatOpenIdByUserId_WhenUserHasNoWeChatBinding_ShouldReturnEmpty() {
+        // Given
+        Integer userId = 1;
+        when(userBinderRepository.findByUserIdAndBindType(userId, BindType.WECHAT))
+                .thenReturn(Optional.empty());
+
+        // When
+        Optional<String> result = userBinderService.findWeChatOpenIdByUserId(userId);
+
+        // Then
+        assertThat(result).isEmpty();
+
+        verify(userBinderRepository).findByUserIdAndBindType(userId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should return true when WeChat openId exists")
+    void existsByWeChatOpenId_WhenOpenIdExists_ShouldReturnTrue() {
+        // Given
+        String openId = "wechat_openid_123";
+        when(userBinderRepository.existsByIdentifierAndBindType(openId, BindType.WECHAT)).thenReturn(true);
+
+        // When
+        boolean result = userBinderService.existsByWeChatOpenId(openId);
+
+        // Then
+        assertThat(result).isTrue();
+
+        verify(userBinderRepository).existsByIdentifierAndBindType(openId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should return false when WeChat openId does not exist")
+    void existsByWeChatOpenId_WhenOpenIdDoesNotExist_ShouldReturnFalse() {
+        // Given
+        String openId = "nonexistent_wechat_openid";
+        when(userBinderRepository.existsByIdentifierAndBindType(openId, BindType.WECHAT)).thenReturn(false);
+
+        // When
+        boolean result = userBinderService.existsByWeChatOpenId(openId);
+
+        // Then
+        assertThat(result).isFalse();
+
+        verify(userBinderRepository).existsByIdentifierAndBindType(openId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should return true when user has WeChat binding")
+    void userHasWeChatBinding_WhenUserHasWeChat_ShouldReturnTrue() {
+        // Given
+        Integer userId = 1;
+        when(userBinderRepository.existsByUserIdAndBindType(userId, BindType.WECHAT)).thenReturn(true);
+
+        // When
+        boolean result = userBinderService.userHasWeChatBinding(userId);
+
+        // Then
+        assertThat(result).isTrue();
+
+        verify(userBinderRepository).existsByUserIdAndBindType(userId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should return false when user has no WeChat binding")
+    void userHasWeChatBinding_WhenUserHasNoWeChat_ShouldReturnFalse() {
+        // Given
+        Integer userId = 1;
+        when(userBinderRepository.existsByUserIdAndBindType(userId, BindType.WECHAT)).thenReturn(false);
+
+        // When
+        boolean result = userBinderService.userHasWeChatBinding(userId);
+
+        // Then
+        assertThat(result).isFalse();
+
+        verify(userBinderRepository).existsByUserIdAndBindType(userId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should unbind WeChat successfully")
+    void unbindWeChat_WhenWeChatBindingExists_ShouldReturnTrue() {
+        // Given
+        Integer userId = 1;
+        when(userBinderRepository.deleteByUserIdAndBindType(userId, BindType.WECHAT)).thenReturn(1);
+
+        // When
+        boolean result = userBinderService.unbindWeChat(userId);
+
+        // Then
+        assertThat(result).isTrue();
+
+        verify(userBinderRepository).deleteByUserIdAndBindType(userId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should return false when no WeChat binding to unbind")
+    void unbindWeChat_WhenNoWeChatBinding_ShouldReturnFalse() {
+        // Given
+        Integer userId = 1;
+        when(userBinderRepository.deleteByUserIdAndBindType(userId, BindType.WECHAT)).thenReturn(0);
+
+        // When
+        boolean result = userBinderService.unbindWeChat(userId);
+
+        // Then
+        assertThat(result).isFalse();
+
+        verify(userBinderRepository).deleteByUserIdAndBindType(userId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should update WeChat openId successfully")
+    void updateWeChatOpenId_WhenNewOpenIdDoesNotExist_ShouldReturnTrue() {
+        // Given
+        Integer userId = 1;
+        String newOpenId = "new_wechat_openid";
+
+        when(userBinderRepository.existsByIdentifierAndBindType(newOpenId, BindType.WECHAT)).thenReturn(false);
+        when(userBinderRepository.updateIdentifierByUserIdAndBindType(newOpenId, userId, BindType.WECHAT)).thenReturn(1);
+
+        // When
+        boolean result = userBinderService.updateWeChatOpenId(userId, newOpenId);
+
+        // Then
+        assertThat(result).isTrue();
+
+        verify(userBinderRepository).existsByIdentifierAndBindType(newOpenId, BindType.WECHAT);
+        verify(userBinderRepository).updateIdentifierByUserIdAndBindType(newOpenId, userId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should throw exception when trying to update to existing WeChat openId of another user")
+    void updateWeChatOpenId_WhenNewOpenIdExistsForAnotherUser_ShouldThrowException() {
+        // Given
+        Integer userId = 1;
+        String newOpenId = "existing_wechat_openid";
+        UserBinder existingBinder = new UserBinder();
+        existingBinder.setUserId(2); // Different user
+        existingBinder.setBindType(BindType.WECHAT);
+        existingBinder.setIdentifier(newOpenId);
+
+        when(userBinderRepository.existsByIdentifierAndBindType(newOpenId, BindType.WECHAT)).thenReturn(true);
+        when(userBinderRepository.findByIdentifierAndBindType(newOpenId, BindType.WECHAT)).thenReturn(Optional.of(existingBinder));
+
+        // When & Then
+        assertThatThrownBy(() -> userBinderService.updateWeChatOpenId(userId, newOpenId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("WeChat OpenID " + newOpenId + " is already bound to another user");
+
+        verify(userBinderRepository).existsByIdentifierAndBindType(newOpenId, BindType.WECHAT);
+        verify(userBinderRepository).findByIdentifierAndBindType(newOpenId, BindType.WECHAT);
+        verifyNoMoreInteractions(userBinderRepository);
+    }
+
+    @Test
+    @DisplayName("Should return false when no WeChat binding to update")
+    void updateWeChatOpenId_WhenNoBindingToUpdate_ShouldReturnFalse() {
+        // Given
+        Integer userId = 1;
+        String newOpenId = "new_wechat_openid";
+
+        when(userBinderRepository.existsByIdentifierAndBindType(newOpenId, BindType.WECHAT)).thenReturn(false);
+        when(userBinderRepository.updateIdentifierByUserIdAndBindType(newOpenId, userId, BindType.WECHAT)).thenReturn(0);
+
+        // When
+        boolean result = userBinderService.updateWeChatOpenId(userId, newOpenId);
+
+        // Then
+        assertThat(result).isFalse();
+
+        verify(userBinderRepository).existsByIdentifierAndBindType(newOpenId, BindType.WECHAT);
+        verify(userBinderRepository).updateIdentifierByUserIdAndBindType(newOpenId, userId, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should handle null WeChat openId gracefully in existsByWeChatOpenId")
+    void existsByWeChatOpenId_WithNullOpenId_ShouldReturnFalse() {
+        // Given
+        when(userBinderRepository.existsByIdentifierAndBindType(null, BindType.WECHAT)).thenReturn(false);
+
+        // When
+        boolean result = userBinderService.existsByWeChatOpenId(null);
+
+        // Then
+        assertThat(result).isFalse();
+
+        verify(userBinderRepository).existsByIdentifierAndBindType(null, BindType.WECHAT);
+    }
+
+    @Test
+    @DisplayName("Should handle null user ID gracefully in userHasWeChatBinding")
+    void userHasWeChatBinding_WithNullUserId_ShouldReturnFalse() {
+        // Given
+        when(userBinderRepository.existsByUserIdAndBindType(null, BindType.WECHAT)).thenReturn(false);
+
+        // When
+        boolean result = userBinderService.userHasWeChatBinding(null);
+
+        // Then
+        assertThat(result).isFalse();
+
+        verify(userBinderRepository).existsByUserIdAndBindType(null, BindType.WECHAT);
+    }
 }
