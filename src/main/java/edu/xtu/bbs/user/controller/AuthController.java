@@ -1,11 +1,7 @@
 package edu.xtu.bbs.user.controller;
 
 import edu.xtu.bbs.user.dto.WeChatRegisterRequest;
-import edu.xtu.bbs.user.exception.EmailAlreadyExistsException;
-import edu.xtu.bbs.user.exception.EmailNotFoundException;
-import edu.xtu.bbs.user.exception.InvalidVerificationException;
-import edu.xtu.bbs.user.exception.UsernameOccupiedException;
-import edu.xtu.bbs.user.exception.WeChatOpenIdAlreadyExistsException;
+import edu.xtu.bbs.user.exception.*;
 import edu.xtu.bbs.user.model.User;
 import edu.xtu.bbs.user.service.AuthenticationService;
 import edu.xtu.bbs.user.service.UserBinderService;
@@ -53,7 +49,7 @@ public class AuthController {
     }
 
     @PostMapping("/register/wechat")
-    public WeChatRegisterResponse registerWithWeChat(@RequestBody WeChatRegisterRequest request) 
+    public WeChatRegisterResponse registerWithWeChat(@RequestBody WeChatRegisterRequest request)
             throws UsernameOccupiedException, WeChatOpenIdAlreadyExistsException {
         if (request == null) {
             throw new IllegalArgumentException("Invalid WeChat registration request");
@@ -82,7 +78,7 @@ public class AuthController {
         if (request == null) {
             throw new IllegalArgumentException("Invalid password reset request");
         }
-        
+
         boolean success = authenticationService.updatePassword(request.getEmail(), request.getPassword(), request.getVerification());
         return new PasswordResetResponse(success);
     }

@@ -28,7 +28,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -41,6 +42,7 @@ class UserControllerSecurityTest {
     private static final String TEST_PROFILE_SLUG = "test-user-slug";
     private static final String ANOTHER_USERNAME = "anotheruser";
     private static final String UPLOAD_URL = "https://example.com/upload/avatar";
+    private static final String ACCESS_URL = "https://example.com/avatar/testuser.jpg";
     private static final String CONTENT_TYPE = "image/jpeg";
     private static final Long FILE_SIZE = 1024L;
 
@@ -111,6 +113,8 @@ class UserControllerSecurityTest {
         when(authenticationService.getCurrentUser()).thenReturn(mockUser);
         when(avatarService.generateAvatarUploadUrl(eq(TEST_USERNAME), eq(CONTENT_TYPE), eq(DataSize.ofBytes(FILE_SIZE))))
                 .thenReturn(UPLOAD_URL);
+        when(avatarService.generateAvatarUrl(eq(TEST_USERNAME)))
+                .thenReturn(ACCESS_URL);
 
         String requestJson = objectMapper.writeValueAsString(request);
 
@@ -119,7 +123,8 @@ class UserControllerSecurityTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isOk())
-                .andExpect(content().string(UPLOAD_URL));
+                .andExpect(jsonPath("$.data.uploadUrl").value(UPLOAD_URL))
+                .andExpect(jsonPath("$.data.accessUrl").value(ACCESS_URL));
     }
 
     @Test

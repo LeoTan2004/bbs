@@ -7,6 +7,7 @@ import edu.xtu.bbs.user.model.User;
 import edu.xtu.bbs.user.service.AuthenticationService;
 import edu.xtu.bbs.user.service.AvatarService;
 import edu.xtu.bbs.user.service.UserService;
+import edu.xtu.bbs.user.vo.AvatarUploadVo;
 import edu.xtu.bbs.user.vo.UploadRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
@@ -39,17 +40,19 @@ public class UserController {
     }
 
     @PostMapping("/{username}/avatar")
-    public String getAvatarUploadUrl(@PathVariable("username") String username, @RequestBody UploadRequest request) throws FileSizeLimitExceededException, IllegalContentTypeException {
+    public AvatarUploadVo getAvatarUploadUrl(@PathVariable("username") String username, @RequestBody UploadRequest request) throws FileSizeLimitExceededException, IllegalContentTypeException {
         if (request == null) {
             throw new IllegalArgumentException("Invalid upload request");
         }
-        
+
         final UserDetails currentUser = authenticationService.getCurrentUser();
         if (!currentUser.getUsername().equals(username)) {
             throw new SecurityException("You can only upload avatar for your own account.");
         }
 
-        return avatarService.generateAvatarUploadUrl(currentUser.getUsername(), request.type(), DataSize.ofBytes(request.size()));
+        final String uploadUrl = avatarService.generateAvatarUploadUrl(currentUser.getUsername(), request.type(), DataSize.ofBytes(request.size()));
+        final String accessUrl = avatarService.generateAvatarUrl(currentUser.getUsername());
+        return new AvatarUploadVo(uploadUrl, accessUrl);
     }
 
     @PatchMapping("/{username}/profile")
@@ -57,7 +60,7 @@ public class UserController {
         if (request == null) {
             throw new IllegalArgumentException("Invalid update profile request");
         }
-        
+
         final User currentUser = authenticationService.getCurrentUser();
         if (!currentUser.getUsername().equals(username)) {
             throw new SecurityException("You can only update your own profile.");
