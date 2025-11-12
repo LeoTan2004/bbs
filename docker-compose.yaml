@@ -1,0 +1,43 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bbs_dev
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/user-schema.sql:/docker-entrypoint-initdb.d/user-schema.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: bbs_dev
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      MAIL_HOST: smtp.qq.com
+      MAIL_USERNAME: 123456789@qq.com
+      MAIL_PASSWORD: password
+      OSS_SECRET_ID: secret-id
+      OSS_SECRET_KEY: secret-key
+      OSS_REGION: ap-guangzhou
+      OSS_AVATAR_BUCKET: avatar-bucket
+      JWT_SECRET_KEY: 3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  mysql_data:
