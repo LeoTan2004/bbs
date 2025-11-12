@@ -1,0 +1,153 @@
+name: Test Java with Maven
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y bc
+      
+      - name: Run tests with coverage
+        run: ./mvnw clean test jacoco:report -B
+      
+      - name: Parse test results
+        id: test-results
+        if: always()
+        run: |
+          # Parse Surefire test results
+          TOTAL_TESTS=0
+          FAILED_TESTS=0
+          SKIPPED_TESTS=0
+          ERROR_TESTS=0
+          
+          if [ -d "target/surefire-reports" ]; then
+            # Count test results from XML files
+            for file in target/surefire-reports/TEST-*.xml; do
+              if [ -f "$file" ]; then
+                tests=$(grep -o 'tests="[0-9]*"' "$file" | grep -o '[0-9]*' || echo "0")
+                failures=$(grep -o 'failures="[0-9]*"' "$file" | grep -o '[0-9]*' || echo "0")
+                errors=$(grep -o 'errors="[0-9]*"' "$file" | grep -o '[0-9]*' || echo "0")
+                skipped=$(grep -o 'skipped="[0-9]*"' "$file" | grep -o '[0-9]*' || echo "0")
+                
+                TOTAL_TESTS=$((TOTAL_TESTS + tests))
+                FAILED_TESTS=$((FAILED_TESTS + failures))
+                ERROR_TESTS=$((ERROR_TESTS + errors))
+                SKIPPED_TESTS=$((SKIPPED_TESTS + skipped))
+              fi
+            done
+          fi
+          
+          PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS - ERROR_TESTS - SKIPPED_TESTS))
+          
+          echo "total-tests=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+          echo "passed-tests=$PASSED_TESTS" >> $GITHUB_OUTPUT
+          echo "failed-tests=$FAILED_TESTS" >> $GITHUB_OUTPUT
+          echo "error-tests=$ERROR_TESTS" >> $GITHUB_OUTPUT
+          echo "skipped-tests=$SKIPPED_TESTS" >> $GITHUB_OUTPUT
+          
+          # Create test summary
+          if [ $FAILED_TESTS -eq 0 ] && [ $ERROR_TESTS -eq 0 ]; then
+            echo "test-status=SUCCESS" >> $GITHUB_OUTPUT
+          else
+            echo "test-status=FAILED" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Parse coverage results
+        id: coverage-results
+        if: always()
+        run: |
+          # Parse JaCoCo coverage report
+          COVERAGE_FILE="target/site/jacoco/jacoco.xml"
+          
+          if [ -f "$COVERAGE_FILE" ]; then
+            # Extract coverage percentages using grep and sed
+            LINE_COVERAGE=$(grep -o 'type="LINE".*missed="[0-9]*".*covered="[0-9]*"' "$COVERAGE_FILE" | head -1 | sed -n 's/.*missed="\([0-9]*\)".*covered="\([0-9]*\)".*/\1 \2/p')
+            BRANCH_COVERAGE=$(grep -o 'type="BRANCH".*missed="[0-9]*".*covered="[0-9]*"' "$COVERAGE_FILE" | head -1 | sed -n 's/.*missed="\([0-9]*\)".*covered="\([0-9]*\)".*/\1 \2/p')
+            
+            if [ -n "$LINE_COVERAGE" ]; then
+              read LINE_MISSED LINE_COVERED <<< "$LINE_COVERAGE"
+              LINE_TOTAL=$((LINE_MISSED + LINE_COVERED))
+              if [ $LINE_TOTAL -gt 0 ]; then
+                LINE_PERCENT=$(echo "scale=2; $LINE_COVERED * 100 / $LINE_TOTAL" | bc -l 2>/dev/null || echo "0")
+              else
+                LINE_PERCENT="0"
+              fi
+            else
+              LINE_PERCENT="0"
+            fi
+            
+            if [ -n "$BRANCH_COVERAGE" ]; then
+              read BRANCH_MISSED BRANCH_COVERED <<< "$BRANCH_COVERAGE"
+              BRANCH_TOTAL=$((BRANCH_MISSED + BRANCH_COVERED))
+              if [ $BRANCH_TOTAL -gt 0 ]; then
+                BRANCH_PERCENT=$(echo "scale=2; $BRANCH_COVERED * 100 / $BRANCH_TOTAL" | bc -l 2>/dev/null || echo "0")
+              else
+                BRANCH_PERCENT="0"
+              fi
+            else
+              BRANCH_PERCENT="0"
+            fi
+          else
+            LINE_PERCENT="0"
+            BRANCH_PERCENT="0"
+          fi
+          
+          echo "line-coverage=$LINE_PERCENT" >> $GITHUB_OUTPUT
+          echo "branch-coverage=$BRANCH_PERCENT" >> $GITHUB_OUTPUT
+      
+      - name: Output test and coverage summary
+        if: always()
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Tests | ${{ steps.test-results.outputs.total-tests }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Passed Tests | ${{ steps.test-results.outputs.passed-tests }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Failed Tests | ${{ steps.test-results.outputs.failed-tests }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Error Tests | ${{ steps.test-results.outputs.error-tests }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skipped Tests | ${{ steps.test-results.outputs.skipped-tests }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Status | ${{ steps.test-results.outputs.test-status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Coverage Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage Type | Percentage |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------------|------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Line Coverage | ${{ steps.coverage-results.outputs.line-coverage }}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch Coverage | ${{ steps.coverage-results.outputs.branch-coverage }}% |" >> $GITHUB_STEP_SUMMARY
+          
+          # Also output to console
+          echo "=== TEST RESULTS ==="
+          echo "Total Tests: ${{ steps.test-results.outputs.total-tests }}"
+          echo "Passed Tests: ${{ steps.test-results.outputs.passed-tests }}"
+          echo "Failed Tests: ${{ steps.test-results.outputs.failed-tests }}"
+          echo "Error Tests: ${{ steps.test-results.outputs.error-tests }}"
+          echo "Skipped Tests: ${{ steps.test-results.outputs.skipped-tests }}"
+          echo "Test Status: ${{ steps.test-results.outputs.test-status }}"
+          echo ""
+          echo "=== COVERAGE RESULTS ==="
+          echo "Line Coverage: ${{ steps.coverage-results.outputs.line-coverage }}%"
+          echo "Branch Coverage: ${{ steps.coverage-results.outputs.branch-coverage }}%"
+      
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            target/site/jacoco/
+            target/surefire-reports/
+      
+      - name: Fail if tests failed
+        if: steps.test-results.outputs.test-status == 'FAILED'
+        run: exit 1
+

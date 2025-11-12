@@ -1,0 +1,1100 @@
+openapi: 3.0.3
+info:
+  title: BBS论坛用户管理API
+  description: |
+    BBS论坛系统的用户认证与管理接口文档
+    
+    ## 功能概述
+    本API提供用户注册、登录、个人信息管理等核心功能，支持多种认证方式。
+    
+    ## 认证机制
+    - JWT Token认证：登录成功后返回JWT Token，需在请求头中携带 `Authorization: Bearer <token>`
+    - 三种登录方式：
+      1. 用户名密码登录：传统的用户名+密码认证
+      2. 邮箱验证码登录：通过邮箱接收验证码进行认证
+      3. 微信小程序登录：使用微信小程序授权码登录
+    - 用户注册支持：邮箱验证码注册、微信小程序注册
+    
+    ## 错误处理
+    所有接口均返回统一格式的响应，包含状态码、消息和数据。错误时会返回对应的错误码和错误信息。
+  version: 0.1.0
+  contact:
+    name: BBS开发团队-后端组
+    email: leotanstudio@gmail.com
+
+servers:
+  - url: https://dev-api.bbs.edu.xtu  
+    description: 开发环境
+
+paths:
+  /auth/register/send-code:
+    post:
+      tags:
+        - 用户认证
+      summary: 发送注册验证码
+      description: |
+        向指定邮箱发送注册验证码，用于用户注册时的邮箱验证。
+        
+        **注意事项：**
+        - 同一邮箱1分钟内只能发送一次验证码
+        - 验证码有效期为10分钟
+        - 邮箱格式必须正确
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+            example: "user@example.com"
+          description: 用户邮箱地址
+      responses:
+        '200':
+          description: 验证码发送成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_email:
+                  summary: 邮箱格式错误
+                  value:
+                    code: 10001
+                    message: "Invalid parameters"
+                    data: 
+                      email: "邮箱格式不正确"
+                email_exists:
+                  summary: 邮箱已存在
+                  value:
+                    code: 20003
+                    message: "User already exists"
+                    data: null
+        '429':
+          description: 请求过于频繁
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 10004
+                message: "Too many requests"
+                data: null
+
+  /auth/register:
+    post:
+      tags:
+        - 用户认证
+      summary: 用户注册
+      description: |
+        通过邮箱验证码完成用户注册。需要先调用发送验证码接口获取验证码。
+        
+        **注册流程：**
+        1. 调用 `/auth/register/send-code` 发送验证码
+        2. 用户收到验证码后，调用此接口完成注册
+        3. 注册成功后可直接登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: 注册失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_error:
+                  summary: 参数验证失败
+                  value:
+                    code: 10001
+                    message: "Invalid parameters"
+                    data:
+                      username: "用户名长度必须在2-50个字符之间"
+                      password: "密码长度必须在8-20个字符之间"
+                username_occupied:
+                  summary: 用户名已被占用
+                  value:
+                    code: 20003
+                    message: "User already exists"
+                    data: null
+                verification_expired:
+                  summary: 验证码已过期
+                  value:
+                    code: 10001
+                    message: "Invalid parameters"
+                    data: null
+
+  /auth/register/wechat:
+    post:
+      tags:
+        - 用户认证
+      summary: 微信小程序注册
+      description: |
+        通过微信小程序授权码完成用户注册。
+        
+        **使用说明：**
+        - 需要微信小程序调用wx.login()获取code
+        - 服务端会通过code获取用户的OpenID
+        - 同一个OpenID只能注册一次
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeChatRegisterRequest'
+      responses:
+        '200':
+          description: 微信注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeChatRegisterResponse'
+        '400':
+          description: 注册失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login/send-code:
+    post:
+      tags:
+        - 用户认证  
+      summary: 发送登录验证码
+      description: |
+        向已注册的邮箱发送登录验证码。
+        
+        **注意事项：**
+        - 邮箱必须已经注册
+        - 验证码有效期为10分钟
+        - 同一邮箱1分钟内只能发送一次
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+            example: "user@example.com"
+          description: 已注册的用户邮箱
+      responses:
+        '200':
+          description: 验证码发送成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          description: 邮箱不存在或格式错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/reset-password/send-code:
+    post:
+      tags:
+        - 用户认证
+      summary: 发送密码重置验证码
+      description: |
+        向已注册的邮箱发送密码重置验证码。
+        
+        **使用场景：**
+        - 用户忘记密码时使用
+        - 验证码有效期为10分钟
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+            example: "user@example.com"
+          description: 需要重置密码的用户邮箱
+      responses:
+        '200':
+          description: 验证码发送成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          description: 邮箱不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/reset-password:
+    post:
+      tags:
+        - 用户认证
+      summary: 重置密码
+      description: |
+        通过邮箱验证码重置用户密码。
+        
+        **操作流程：**
+        1. 先调用发送密码重置验证码接口
+        2. 用户收到验证码后调用此接口
+        3. 密码重置成功后需要重新登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordUpdateRequest'
+      responses:
+        '200':
+          description: 密码重置成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetResponse'
+        '400':
+          description: 重置失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - 用户认证
+      summary: 用户名密码登录
+      description: |
+        使用用户名和密码进行登录认证。
+        
+        **登录流程：**
+        1. 提供用户名和密码
+        2. 登录成功返回JWT Token
+        3. 后续请求需在Authorization头中携带Token
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UsernamePasswordLoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          headers:
+            Authorization:
+              description: JWT Token，格式为 "Bearer <token>"
+              schema:
+                type: string
+                example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+        '401':
+          description: 用户名或密码错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 20002
+                message: "Incorrect password"
+                data: null
+
+  /auth/login-with-code:
+    post:
+      tags:
+        - 用户认证
+      summary: 邮箱验证码登录
+      description: |
+        使用邮箱验证码进行登录认证。
+        
+        **登录流程：**
+        1. 先调用 `/auth/login/send-code` 发送验证码
+        2. 用户收到验证码后调用此接口
+        3. 登录成功返回JWT Token
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailCodeLoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          headers:
+            Authorization:
+              description: JWT Token，格式为 "Bearer <token>"
+              schema:
+                type: string
+                example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+        '400':
+          description: 验证码错误或已过期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 认证失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login-with-wechat:
+    post:
+      tags:
+        - 用户认证
+      summary: 微信小程序登录
+      description: |
+        使用微信小程序授权码进行登录认证。
+        
+        **登录流程：**
+        1. 微信小程序调用wx.login()获取code
+        2. 将code发送到此接口进行认证
+        3. 登录成功返回JWT Token
+        
+        **注意事项：**
+        - code只能使用一次
+        - 用户必须已经通过微信注册
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WeChatLoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          headers:
+            Authorization:
+              description: JWT Token，格式为 "Bearer <token>"
+              schema:
+                type: string
+                example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+        '400':
+          description: 微信授权码无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 用户未注册或认证失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user:
+    get:
+      tags:
+        - 用户管理
+      summary: 获取当前用户信息
+      description: |
+        获取当前登录用户的详细信息。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 获取用户信息成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+        '401':
+          description: 未登录或token已过期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/{username}:
+    get:
+      tags:
+        - 用户管理
+      summary: 根据用户名获取用户信息
+      description: |
+        获取指定用户名的用户公开信息。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "johndoe"
+          description: 用户名
+      responses:
+        '200':
+          description: 获取用户信息成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+        '404':
+          description: 用户不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/{username}/avatar:
+    post:
+      tags:
+        - 用户管理
+      summary: 获取头像上传链接
+      description: |
+        获取用于上传用户头像的预签名URL和访问URL。
+        
+        **权限要求：** 只能为自己上传头像
+        **文件限制：**
+        - 支持的格式：image/jpeg, image/png, image/gif
+        - 最大文件大小：5MB
+        
+        **返回信息：**
+        - uploadUrl: 用于上传头像文件的预签名URL
+        - accessUrl: 上传成功后访问头像的URL
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "johndoe"
+          description: 用户名（必须是当前登录用户）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadRequest'
+      responses:
+        '200':
+          description: 获取上传链接成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvatarUploadResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                file_too_large:
+                  summary: 文件过大
+                  value:
+                    code: 90004
+                    message: "File upload failed"
+                    data: "File size exceeds limit"
+                invalid_type:
+                  summary: 文件类型不支持
+                  value:
+                    code: 90004
+                    message: "File upload failed" 
+                    data: "Unsupported file type"
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/{username}/profile:
+    patch:
+      tags:
+        - 用户管理
+      summary: 更新用户资料
+      description: |
+        更新用户的个人资料信息。
+        
+        **权限要求：** 只能更新自己的资料
+        **可更新字段：**
+        - nickname: 昵称（最大100字符）
+        - bio: 个人简介（最大1023字符）
+        - profileSlug: 个人页面地址（最大100字符）
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "johndoe"
+          description: 用户名（必须是当前登录用户）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: 更新成功，返回更新后的用户信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+        '400':
+          description: 参数验证失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 用户不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Token认证，格式为：Bearer <token>
+        
+        获取方式：
+        1. 用户名密码登录：POST /auth/login
+        2. 邮箱验证码登录：POST /auth/login-with-code
+        3. 微信小程序登录：POST /auth/login-with-wechat
+        
+        Token会在登录成功后通过响应头Authorization和响应体data.token同时返回。
+
+  schemas:
+    # ==================== 请求模型 ====================
+    RegisterRequest:
+      type: object
+      required:
+        - user
+        - verification
+      properties:
+        user:
+          $ref: '#/components/schemas/CreateUserRequest'
+        verification:
+          $ref: '#/components/schemas/VerificationParam'
+      example:
+        user:
+          username: "johndoe"
+          password: "password123"
+          email: "john@example.com"
+          nickname: "John Doe"
+          bio: "Hello, I'm John!"
+        verification:
+          principle: "john@example.com"
+          token: "reg_abc123"
+          scope: "register"
+          credential: "123456"
+
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - password
+        - email
+      properties:
+        username:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: 用户名，2-50个字符，支持字母、数字、下划线
+          example: "johndoe"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 20
+          description: 密码，8-20个字符
+          example: "password123"
+        email:
+          type: string
+          format: email
+          description: 邮箱地址
+          example: "john@example.com"
+        nickname:
+          type: string
+          maxLength: 100
+          description: 昵称，最大100个字符
+          example: "John Doe"
+        bio:
+          type: string
+          maxLength: 1023
+          description: 个人简介，最大1023个字符
+          example: "Hello, I'm John!"
+
+    WeChatRegisterRequest:
+      type: object
+      required:
+        - code
+        - username
+        - password
+      properties:
+        code:
+          type: string
+          description: 微信小程序授权码，通过wx.login()获取
+          example: "061234567890abcdef"
+        username:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: 用户名
+          example: "wechat_user"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 20
+          description: 登录密码
+          example: "password123"
+        nickname:
+          type: string
+          maxLength: 100
+          description: 昵称
+          example: "微信用户"
+        bio:
+          type: string
+          maxLength: 1023
+          description: 个人简介
+          example: "通过微信注册的用户"
+
+    PasswordUpdateRequest:
+      type: object
+      required:
+        - email
+        - password
+        - verification
+      properties:
+        email:
+          type: string
+          format: email
+          description: 用户邮箱
+          example: "john@example.com"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 20
+          description: 新密码
+          example: "newpassword123"
+        verification:
+          $ref: '#/components/schemas/VerificationParam'
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        nickname:
+          type: string
+          maxLength: 100
+          description: 昵称
+          example: "New Nickname"
+        bio:
+          type: string
+          maxLength: 1023
+          description: 个人简介
+          example: "更新后的个人简介"
+        profileSlug:
+          type: string
+          maxLength: 100
+          description: 个人页面地址
+          example: "my-profile"
+
+    UploadRequest:
+      type: object
+      required:
+        - type
+        - size
+      properties:
+        type:
+          type: string
+          description: 文件MIME类型
+          enum:
+            - image/jpeg
+            - image/png
+            - image/gif
+          example: "image/jpeg"
+        size:
+          type: integer
+          minimum: 1
+          maximum: 5242880
+          description: 文件大小（字节），最大5MB
+          example: 1024000
+
+    VerificationParam:
+      type: object
+      required:
+        - principle
+        - token
+        - scope
+        - credential
+      properties:
+        principle:
+          type: string
+          description: 验证主体（通常是邮箱地址）
+          example: "john@example.com"
+        token:
+          type: string
+          description: 验证令牌（从发送验证码接口获取）
+          example: "reg_abc123"
+        scope:
+          type: string
+          description: 验证范围
+          enum:
+            - register
+            - login
+            - reset_password
+          example: "register"
+        credential:
+          type: string
+          description: 验证码（6位数字）
+          example: "123456"
+
+    UsernamePasswordLoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: 用户名
+          example: "johndoe"
+        password:
+          type: string
+          description: 密码
+          example: "password123"
+
+    EmailCodeLoginRequest:
+      type: object
+      required:
+        - principle
+        - token
+        - scope
+        - credential
+      properties:
+        principle:
+          type: string
+          description: 邮箱地址
+          example: "john@example.com"
+        token:
+          type: string
+          description: 验证令牌（从发送登录验证码接口获取）
+          example: "login_abc123"
+        scope:
+          type: string
+          description: 验证范围，登录时固定为"login"
+          enum:
+            - login
+          example: "login"
+        credential:
+          type: string
+          description: 邮箱验证码（6位数字）
+          example: "123456"
+
+    WeChatLoginRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: 微信小程序授权码，通过wx.login()获取
+          example: "061234567890abcdef"
+
+    # ==================== 响应模型 ====================
+    AuthTokenResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 响应状态码
+          example: 10000
+        message:
+          type: string
+          description: 响应消息
+          example: "Success"
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              description: 验证令牌，用于后续验证
+              example: "reg_abc123def456"
+
+    RegisterResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: object
+          properties:
+            email:
+              type: string
+              format: email
+              description: 注册成功的邮箱地址
+              example: "john@example.com"
+
+    WeChatRegisterResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: object
+          properties:
+            openId:
+              type: string
+              description: 微信OpenID
+              example: "ox1234567890abcdef"
+
+    PasswordResetResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: object
+          properties:
+            success:
+              type: boolean
+              description: 密码重置是否成功
+              example: true
+
+    LoginSuccessResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Login successful"
+        data:
+          type: object
+          properties:
+            username:
+              type: string
+              description: 登录用户名
+              example: "johndoe"
+            token:
+              type: string
+              description: JWT Token（也会在响应头Authorization中返回）
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    UserDetails:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+              description: 用户ID
+              example: 123
+            username:
+              type: string
+              description: 用户名
+              example: "johndoe"
+            nickname:
+              type: string
+              description: 昵称
+              example: "John Doe"
+            bio:
+              type: string
+              description: 个人简介
+              example: "Hello, I'm John!"
+            profileSlug:
+              type: string
+              description: 个人页面地址
+              example: "my-profile"
+            avatarUrl:
+              type: string
+              description: 头像URL
+              example: "https://storage.example.com/avatar/123.jpg"
+            role:
+              type: string
+              enum:
+                - USER
+                - ADMIN
+                - MODERATOR
+              description: 用户角色
+              example: "USER"
+            status:
+              type: string
+              enum:
+                - Active
+                - Inactive
+                - Banned
+              description: 用户状态
+              example: "Active"
+            verifiedId:
+              type: integer
+              description: 认证信息ID
+              example: 456
+            createdAt:
+              type: string
+              format: date-time
+              description: 创建时间
+              example: "2024-01-01T00:00:00Z"
+            updatedAt:
+              type: string
+              format: date-time
+              description: 更新时间
+              example: "2024-01-01T12:00:00Z"
+
+    AvatarUploadResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: object
+          properties:
+            uploadUrl:
+              type: string
+              description: 预签名上传URL，用于上传头像文件
+              example: "https://storage.example.com/upload/avatar/abc123.jpg?signature=xyz"
+            accessUrl:
+              type: string
+              description: 头像访问URL，上传成功后可通过此URL访问头像
+              example: "https://storage.example.com/avatar/testuser.jpg"
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 错误代码
+          example: 10001
+        message:
+          type: string
+          description: 错误消息
+          example: "Invalid parameters"
+        data:
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties:
+                type: string
+          description: 错误详细信息，验证失败时包含字段级错误
+          example:
+            username: "用户名长度必须在2-50个字符之间"
+            password: "密码长度必须在8-20个字符之间"
+
+tags:
+  - name: 用户认证
+    description: |
+      用户认证相关接口，包括注册、登录、密码重置等功能
+      
+      **三种登录方式：**
+      1. 用户名密码登录：POST /auth/login - 传统认证方式
+      2. 邮箱验证码登录：POST /auth/login-with-code - 发送验证码 → 验证码登录
+      3. 微信小程序登录：POST /auth/login-with-wechat - 获取微信code → 服务端验证
+      
+      **注册流程说明：**
+      - 邮箱注册：发送验证码 → 验证码确认 → 完成注册
+      - 微信注册：获取微信code → 服务端验证 → 完成注册
+  - name: 用户管理
+    description: |
+      用户信息管理相关接口，包括查看用户信息、更新资料、头像上传等
+      
+      **权限说明：**
+      - 查看信息：需要登录即可查看任何用户的公开信息
+      - 修改资料：只能修改自己的资料
+      - 上传头像：只能为自己上传头像
+
+# ==================== 错误码说明 ====================
+# 通用错误码 (1xxxx)
+# 10000: 成功
+# 10001: 参数无效
+# 10002: 未登录或token过期  
+# 10003: 权限不足
+# 10004: 请求过于频繁
+#
+# 用户模块错误码 (2xxxx)  
+# 20001: 用户不存在
+# 20002: 密码错误
+# 20003: 用户已存在
+# 20004: 不能关注自己
+#
+# 系统错误码 (9xxxx)
+# 90001: 内部服务器错误
+# 90002: 服务不可用
+# 90003: 数据库操作失败
+# 90004: 文件上传失败
