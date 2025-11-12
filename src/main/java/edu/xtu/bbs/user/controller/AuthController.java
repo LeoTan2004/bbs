@@ -1,9 +1,11 @@
 package edu.xtu.bbs.user.controller;
 
+import edu.xtu.bbs.user.dto.WeChatRegisterRequest;
 import edu.xtu.bbs.user.exception.EmailAlreadyExistsException;
 import edu.xtu.bbs.user.exception.EmailNotFoundException;
 import edu.xtu.bbs.user.exception.InvalidVerificationException;
 import edu.xtu.bbs.user.exception.UsernameOccupiedException;
+import edu.xtu.bbs.user.exception.WeChatOpenIdAlreadyExistsException;
 import edu.xtu.bbs.user.model.User;
 import edu.xtu.bbs.user.service.AuthenticationService;
 import edu.xtu.bbs.user.service.UserBinderService;
@@ -48,6 +50,19 @@ public class AuthController {
         String email = userBinderService.findEmailByUserId(registeredUser.getId())
                 .orElse(registerVo.getUser().email()); // Fallback to email from request
         return new RegisterResponse(email);
+    }
+
+    @PostMapping("/register/wechat")
+    public WeChatRegisterResponse registerWithWeChat(@RequestBody WeChatRegisterRequest request) 
+            throws UsernameOccupiedException, WeChatOpenIdAlreadyExistsException {
+        if (request == null) {
+            throw new IllegalArgumentException("Invalid WeChat registration request");
+        }
+
+        User registeredUser = authenticationService.registerWithWeChat(request);
+        String openId = userBinderService.findWeChatOpenIdByUserId(registeredUser.getId())
+                .orElse(""); // Fallback to empty string if not found
+        return new WeChatRegisterResponse(openId);
     }
 
     @PostMapping("/login/send-code")

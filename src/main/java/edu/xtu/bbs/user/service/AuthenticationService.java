@@ -1,10 +1,12 @@
 package edu.xtu.bbs.user.service;
 
 import edu.xtu.bbs.user.dto.CreateUserRequest;
+import edu.xtu.bbs.user.dto.WeChatRegisterRequest;
 import edu.xtu.bbs.user.exception.EmailAlreadyExistsException;
 import edu.xtu.bbs.user.exception.EmailNotFoundException;
 import edu.xtu.bbs.user.exception.InvalidVerificationException;
 import edu.xtu.bbs.user.exception.UsernameOccupiedException;
+import edu.xtu.bbs.user.exception.WeChatOpenIdAlreadyExistsException;
 import edu.xtu.bbs.user.model.Role;
 import edu.xtu.bbs.user.model.Status;
 import edu.xtu.bbs.user.model.User;
@@ -39,14 +41,16 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final UserBinderService userBinderService;
+    private final WeChatAppService weChatAppService;
 
-    public AuthenticationService(UserService userService, VerificationService verificationService, AvatarService avatarService, PasswordEncoder passwordEncoder, UserRepository userRepository, UserBinderService userBinderService) {
+    public AuthenticationService(UserService userService, VerificationService verificationService, AvatarService avatarService, PasswordEncoder passwordEncoder, UserRepository userRepository, UserBinderService userBinderService, WeChatAppService weChatAppService) {
         this.userService = userService;
         this.verificationService = verificationService;
         this.avatarService = avatarService;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
         this.userBinderService = userBinderService;
+        this.weChatAppService = weChatAppService;
     }
 
 
@@ -134,6 +138,62 @@ public class AuthenticationService {
 
         // Bind email to user
         userBinderService.bindEmail(savedUser, request.email());
+
+        return savedUser;
+    }
+
+    /**
+     * Register user with WeChat
+     * <p>
+     * Register a new user using WeChat authorization code
+     * </p>
+     * 
+     * @param request WeChat registration request containing code and user info
+     * @return the user that has been created
+     * @throws UsernameOccupiedException if the username has been occupied
+     * @throws WeChatOpenIdAlreadyExistsException if the WeChat OpenID has been bound by another user
+     */
+    public User registerWithWeChat(WeChatRegisterRequest request) 
+            throws UsernameOccupiedException, WeChatOpenIdAlreadyExistsException {
+        
+        if (request == null) {
+            throw new IllegalArgumentException("Invalid WeChat registration request");
+        }
+
+        // Check if username already exists
+        if (userService.existsByUsername(request.username())) {
+            throw new UsernameOccupiedException(request.username());
+        }
+
+        // Get OpenID from WeChat using the authorization code
+        String openId = weChatAppService.getOpenIdByCode(request.code());
+        if (openId == null || openId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Failed to get WeChat OpenID from code");
+        }
+
+        // Check if WeChat OpenID already exists
+        if (userBinderService.existsByWeChatOpenId(openId)) {
+            throw new WeChatOpenIdAlreadyExistsException(openId);
+        }
+
+        // Create new user
+        User user = new User();
+        user.setUsername(request.username());
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setNickname(request.nickname() != null ? request.nickname() : request.username());
+        user.setBio(request.bio());
+        user.setRole(Role.User);
+        
+        // Generate avatar URL
+        final String avatarUrl = avatarService.generateAvatarUrl(user.getUsername());
+        user.setAvatarUrl(avatarUrl);
+        user.setStatus(Status.Active);
+
+        // Save user
+        User savedUser = userRepository.save(user);
+
+        // Bind WeChat OpenID to user
+        userBinderService.bindWeChat(savedUser, openId);
 
         return savedUser;
     }

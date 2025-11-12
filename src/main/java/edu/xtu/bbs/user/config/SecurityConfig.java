@@ -1,13 +1,11 @@
 package edu.xtu.bbs.user.config;
 
 import edu.xtu.bbs.common.trace.TraceIdFilter;
-import edu.xtu.bbs.user.filter.EmailCodeAuthenticationProvider;
-import edu.xtu.bbs.user.filter.JwtAuthorizationFilter;
-import edu.xtu.bbs.user.filter.JwtEmailCodeAuthenticationFilter;
-import edu.xtu.bbs.user.filter.JwtUsernamePasswordAuthenticationFilter;
+import edu.xtu.bbs.user.filter.*;
 import edu.xtu.bbs.user.repo.UserRepository;
 import edu.xtu.bbs.user.service.UserBinderService;
 import edu.xtu.bbs.user.service.UserService;
+import edu.xtu.bbs.user.service.WeChatAppService;
 import edu.xtu.bbs.verification.VerificationService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,13 +33,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder, VerificationService verificationService, UserRepository userRepository, UserService userService, UserBinderService userBinderService) {
+    public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder, 
+                                                      VerificationService verificationService, 
+                                                      UserRepository userRepository, 
+                                                      UserService userService, 
+                                                      UserBinderService userBinderService,
+                                                      WeChatAppService weChatAppService) {
         final DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(userService::findByUsername);
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
 
         final EmailCodeAuthenticationProvider emailCodeAuthenticationProvider = new EmailCodeAuthenticationProvider(verificationService, userRepository, userBinderService);
+        
+        final WeChatAppAuthenticationProvider weChatAppAuthenticationProvider = new WeChatAppAuthenticationProvider(weChatAppService, userBinderService, userRepository);
 
-        return new ProviderManager(daoAuthenticationProvider, emailCodeAuthenticationProvider);
+        return new ProviderManager(daoAuthenticationProvider, emailCodeAuthenticationProvider, weChatAppAuthenticationProvider);
 
     }
 
@@ -50,6 +55,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             JwtEmailCodeAuthenticationFilter jwtEmailCodeAuthenticationFilter,
                                             JwtUsernamePasswordAuthenticationFilter jwtUsernamePasswordAuthenticationFilter,
+                                            JwtWeChatAppAuthenticationFilter jwtWeChatAppAuthenticationFilter,
                                             JwtAuthorizationFilter jwtAuthorizationFilter,
                                             TraceIdFilter traceIdFilter,
                                             AuthenticationManager manager) throws Exception {
@@ -90,9 +96,13 @@ public class SecurityConfig {
            ├─ Path matches: POST /auth/login → Process authentication
            └─ No match → Continue to next filter
 
-        6. AnonymousAuthenticationFilter (Handle anonymous users)
-        7. ExceptionTranslationFilter (Exception handling)
-        8. FilterSecurityInterceptor (Authorization checks)
+        6. JwtWeChatAppAuthenticationFilter ← Custom WeChat authentication
+           ├─ Path matches: POST /auth/login-with-wechat → Process authentication
+           └─ No match → Continue to next filter
+
+        7. AnonymousAuthenticationFilter (Handle anonymous users)
+        8. ExceptionTranslationFilter (Exception handling)
+        9. FilterSecurityInterceptor (Authorization checks)
 
         Notes:
         - TraceIdFilter is placed BEFORE all other filters to ensure TraceId is available throughout the entire request
@@ -107,7 +117,8 @@ public class SecurityConfig {
                 // JWT authorization filter should be before authentication filters but after security context establishment
                 .addFilterBefore(jwtAuthorizationFilter, BasicAuthenticationFilter.class)
                 .addFilterAfter(jwtEmailCodeAuthenticationFilter, JwtAuthorizationFilter.class)
-                .addFilterAfter(jwtUsernamePasswordAuthenticationFilter, JwtAuthorizationFilter.class);
+                .addFilterAfter(jwtUsernamePasswordAuthenticationFilter, JwtAuthorizationFilter.class)
+                .addFilterAfter(jwtWeChatAppAuthenticationFilter, JwtAuthorizationFilter.class);
         return http.build();
     }
 }

@@ -103,6 +103,26 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle WeChat OpenID already exists exceptions
+     */
+    @ExceptionHandler(WeChatOpenIdAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleWeChatOpenIdAlreadyExistsException(WeChatOpenIdAlreadyExistsException e) {
+        log.warn("WeChat OpenID already exists exception: {}", e.toString());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.USER_ALREADY_EXISTS);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle WeChat app user not found exceptions
+     */
+    @ExceptionHandler(WeChatAppUserNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleWeChatAppUserNotFoundException(WeChatAppUserNotFoundException e) {
+        log.warn("WeChat app user not found exception: {}", e.toString());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.USER_NOT_FOUND, "WeChat user not found");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Handle verification code expired exceptions
      */
     @ExceptionHandler(VerificationExpiredException.class)
