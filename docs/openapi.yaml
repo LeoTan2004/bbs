@@ -23,8 +23,8 @@ info:
     email: leotanstudio@gmail.com
 
 servers:
-  - url: https://dev-api.bbs.edu.xtu  
-    description: 开发环境
+  - url: http://bbs.leocoding.onliine
+    description: 测试环境
 
 paths:
   /auth/register/send-code:
