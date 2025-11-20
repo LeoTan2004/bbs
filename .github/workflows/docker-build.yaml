@@ -6,16 +6,17 @@ on:
       - develop
       - main
 
+
 jobs:
   build-and-push:
     name: Build and push Docker image
     runs-on: ubuntu-latest
     env:
       REGISTRY: ${{ secrets.REGISTRY }}
-      IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-      NAMESPACE: ${{ secrets.NAMESPACE }}
+      IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+      NAMESPACE: ${{ vars.NAMESPACE }}
 
     steps:
       - name: Checkout repository
