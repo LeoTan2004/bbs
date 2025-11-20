@@ -1,11 +1,21 @@
 name: Test Java with Maven
 on:
-  - push
-  - pull_request
+  push:
+  pull_request:
+  workflow_call:
 
 jobs:
   test:
     runs-on: ubuntu-22.04
+    outputs:
+      test-status: ${{ steps.test-results.outputs.test-status }}
+      total-tests: ${{ steps.test-results.outputs.total-tests }}
+      passed-tests: ${{ steps.test-results.outputs.passed-tests }}
+      failed-tests: ${{ steps.test-results.outputs.failed-tests }}
+      error-tests: ${{ steps.test-results.outputs.error-tests }}
+      skipped-tests: ${{ steps.test-results.outputs.skipped-tests }}
+      line-coverage: ${{ steps.coverage-results.outputs.line-coverage }}
+      branch-coverage: ${{ steps.coverage-results.outputs.branch-coverage }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
