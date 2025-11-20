@@ -16,20 +16,8 @@ services:
     build: .
     ports:
       - "8080:8080"
-    environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: bbs_dev
-      DB_USERNAME: root
-      DB_PASSWORD: root
-      MAIL_HOST: smtp.qq.com
-      MAIL_USERNAME: 123456789@qq.com
-      MAIL_PASSWORD: password
-      OSS_SECRET_ID: secret-id
-      OSS_SECRET_KEY: secret-key
-      OSS_REGION: ap-guangzhou
-      OSS_AVATAR_BUCKET: avatar-bucket
-      JWT_SECRET_KEY: 3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b
+    env_file:
+      - .env
     depends_on:
       mysql:
         condition: service_healthy
