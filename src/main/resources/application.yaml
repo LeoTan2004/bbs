@@ -16,6 +16,22 @@ spring:
     port: 465
     ssl:
       enabled: true
+server:
+  port: 8080
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+
 bbs:
   oss:
     secret-id: ${OSS_SECRET_ID:secret-id}
