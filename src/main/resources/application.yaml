@@ -36,3 +36,7 @@ bbs:
     jwt:
       secret-key: ${JWT_SECRET_KEY}
       expired-time: 2h
+  wechat:
+    app:
+      app-id: ${WECHAT_APP_APP_ID}
+      app-secret: ${WECHAT_APP_APP_SECRET}
