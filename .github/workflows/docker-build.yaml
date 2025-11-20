@@ -2,9 +2,9 @@ name: CI - Test then Docker Build & Push
 
 on:
   push:
-    branches:
-      - develop
-      - main
+    tags:
+      - "docker-build-*"
+  workflow_dispatch:
 
 
 jobs:
