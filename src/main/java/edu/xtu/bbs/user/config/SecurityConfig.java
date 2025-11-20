@@ -33,17 +33,17 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder, 
-                                                      VerificationService verificationService, 
-                                                      UserRepository userRepository, 
-                                                      UserService userService, 
-                                                      UserBinderService userBinderService,
-                                                      WeChatAppService weChatAppService) {
+    public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder,
+                                                       VerificationService verificationService,
+                                                       UserRepository userRepository,
+                                                       UserService userService,
+                                                       UserBinderService userBinderService,
+                                                       WeChatAppService weChatAppService) {
         final DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(userService::findByUsername);
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
 
         final EmailCodeAuthenticationProvider emailCodeAuthenticationProvider = new EmailCodeAuthenticationProvider(verificationService, userRepository, userBinderService);
-        
+
         final WeChatAppAuthenticationProvider weChatAppAuthenticationProvider = new WeChatAppAuthenticationProvider(weChatAppService, userBinderService, userRepository);
 
         return new ProviderManager(daoAuthenticationProvider, emailCodeAuthenticationProvider, weChatAppAuthenticationProvider);
@@ -65,6 +65,7 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                 .anyRequest().authenticated()
         ).sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
