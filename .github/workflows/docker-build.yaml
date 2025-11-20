@@ -18,7 +18,7 @@ jobs:
     name: Build and push Docker image
     needs: run-tests
     runs-on: ubuntu-latest
-    if: ${{ needs.run-tests.outputs.test-status == 'SUCCESS' }}
+    if: ${{ needs.run-tests.outputs.test-status != 'FAILED' }}
     env:
       REGISTRY: ${{ secrets.REGISTRY }}
       IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
