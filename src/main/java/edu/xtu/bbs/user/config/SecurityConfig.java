@@ -89,7 +89,7 @@ public class SecurityConfig {
            ├─ Valid JWT → Set authentication info, subsequent auth filters may be skipped
            └─ Invalid JWT → Clear SecurityContext, continue to next filter
 
-        4. JwtEmailCodeAuthenticationFilter ← Custom email code authentication
+        4. JwtEmailCodeAuthenticationFilter ← Custom username code authentication
            ├─ Path matches: POST /auth/login-with-code → Process authentication
            └─ No match → Continue to next filter
 

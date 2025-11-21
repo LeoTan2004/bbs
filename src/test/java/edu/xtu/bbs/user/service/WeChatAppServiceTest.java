@@ -10,10 +10,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClient;
 
-import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -73,11 +75,12 @@ class WeChatAppServiceTest {
 
         // Mock the fluent chain
         when(restClient.get()).thenReturn(uriSpec);
-        when(uriSpec.uri(any(Function.class))).thenReturn(uriSpec);
+        when(uriSpec.uri(anyString(), any(), any(), any())).thenReturn(uriSpec);
         when(uriSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.body(WeChatAppSessionDto.class)).thenReturn(mockResponse);
 
         // When
+        // invoke
         String result = weChatAppService.getOpenIdByCode(code);
 
         // Then
@@ -110,7 +113,7 @@ class WeChatAppServiceTest {
 
         // Mock the fluent chain to return null
         when(restClient.get()).thenReturn(uriSpec);
-        when(uriSpec.uri(any(Function.class))).thenReturn(uriSpec);
+        when(uriSpec.uri(anyString(), any(), any(), any())).thenReturn(uriSpec);
         when(uriSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.body(WeChatAppSessionDto.class)).thenReturn(null);
 
@@ -135,11 +138,11 @@ class WeChatAppServiceTest {
         when(weChatAppConfiguration.getAppSecret()).thenReturn(appSecret);
 
         WeChatAppSessionDto mockResponse = new WeChatAppSessionDto(
-                "session_key",
-                "union_id",
-                40013, // error code
-                "invalid code",
-                null // null openid
+            "session_key",
+            "union_id",
+            null, // no error code
+            null,
+            null // null openid
         );
 
         // Create mocks for the fluent API chain
@@ -148,7 +151,7 @@ class WeChatAppServiceTest {
 
         // Mock the fluent chain
         when(restClient.get()).thenReturn(uriSpec);
-        when(uriSpec.uri(any(Function.class))).thenReturn(uriSpec);
+        when(uriSpec.uri(anyString(), any(), any(), any())).thenReturn(uriSpec);
         when(uriSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.body(WeChatAppSessionDto.class)).thenReturn(mockResponse);
 
@@ -173,5 +176,99 @@ class WeChatAppServiceTest {
         // Then
         assertThat(ReflectionTestUtils.getField(service, "weChatAppConfiguration")).isEqualTo(weChatAppConfiguration);
         assertThat(ReflectionTestUtils.getField(service, "restClient")).isEqualTo(restClient);
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void getOpenIdByCode_shouldThrowIllegalArgument_forErrcode40029() {
+        String code = "c1";
+        when(weChatAppConfiguration.getTokenUrl()).thenReturn("u");
+        when(weChatAppConfiguration.getAppId()).thenReturn("a");
+        when(weChatAppConfiguration.getAppSecret()).thenReturn("s");
+
+        RestClient.RequestHeadersUriSpec uriSpec = mock(RestClient.RequestHeadersUriSpec.class);
+        RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+        when(restClient.get()).thenReturn(uriSpec);
+        when(uriSpec.uri(anyString(), any(), any(), any())).thenReturn(uriSpec);
+        when(uriSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(WeChatAppSessionDto.class)).thenReturn(new WeChatAppSessionDto("k", "u", 40029, "err", "oid"));
+
+        var ex = assertThrows(IllegalArgumentException.class, () -> weChatAppService.getOpenIdByCode(code));
+        assertThat(ex.getMessage()).isEqualTo("Invalid code");
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void getOpenIdByCode_shouldThrowIllegalArgument_forErrcode40226() {
+        String code = "c2";
+        when(weChatAppConfiguration.getTokenUrl()).thenReturn("u");
+        when(weChatAppConfiguration.getAppId()).thenReturn("a");
+        when(weChatAppConfiguration.getAppSecret()).thenReturn("s");
+
+        RestClient.RequestHeadersUriSpec uriSpec = mock(RestClient.RequestHeadersUriSpec.class);
+        RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+        when(restClient.get()).thenReturn(uriSpec);
+        when(uriSpec.uri(anyString(), any(), any(), any())).thenReturn(uriSpec);
+        when(uriSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(WeChatAppSessionDto.class)).thenReturn(new WeChatAppSessionDto("k", "u", 40226, "err", "oid"));
+
+        var ex = assertThrows(IllegalArgumentException.class, () -> weChatAppService.getOpenIdByCode(code));
+        assertThat(ex.getMessage()).isEqualTo("Code block");
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void getOpenIdByCode_shouldThrowIllegalState_forErrcode45011_andMinus1_andDefault() {
+        when(weChatAppConfiguration.getTokenUrl()).thenReturn("u");
+        when(weChatAppConfiguration.getAppId()).thenReturn("a");
+        when(weChatAppConfiguration.getAppSecret()).thenReturn("s");
+
+        // 45011 -> rate limit
+        {
+            RestClient.RequestHeadersUriSpec uriSpec = mock(RestClient.RequestHeadersUriSpec.class);
+            RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+            when(restClient.get()).thenReturn(uriSpec);
+            when(uriSpec.uri(anyString(), any(), any(), any())).thenReturn(uriSpec);
+            when(uriSpec.retrieve()).thenReturn(responseSpec);
+            when(responseSpec.body(WeChatAppSessionDto.class)).thenReturn(new WeChatAppSessionDto("k", "u", 45011, "err", "oid"));
+            var ex = assertThrows(IllegalStateException.class, () -> weChatAppService.getOpenIdByCode("c3"));
+            assertThat(ex.getMessage()).isEqualTo("Rate limit exceeded");
+        }
+
+        // -1 -> system busy
+        {
+            RestClient.RequestHeadersUriSpec uriSpec = mock(RestClient.RequestHeadersUriSpec.class);
+            RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+            when(restClient.get()).thenReturn(uriSpec);
+            when(uriSpec.uri(anyString(), any(), any(), any())).thenReturn(uriSpec);
+            when(uriSpec.retrieve()).thenReturn(responseSpec);
+            when(responseSpec.body(WeChatAppSessionDto.class)).thenReturn(new WeChatAppSessionDto("k", "u", -1, "err", "oid"));
+            var ex = assertThrows(IllegalStateException.class, () -> weChatAppService.getOpenIdByCode("c4"));
+            assertThat(ex.getMessage()).isEqualTo("System busy");
+        }
+
+        // default -> unknown
+        {
+            RestClient.RequestHeadersUriSpec uriSpec = mock(RestClient.RequestHeadersUriSpec.class);
+            RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+            when(restClient.get()).thenReturn(uriSpec);
+            when(uriSpec.uri(anyString(), any(), any(), any())).thenReturn(uriSpec);
+            when(uriSpec.retrieve()).thenReturn(responseSpec);
+            when(responseSpec.body(WeChatAppSessionDto.class)).thenReturn(new WeChatAppSessionDto("k", "u", 12345, "err", "oid"));
+            var ex = assertThrows(IllegalStateException.class, () -> weChatAppService.getOpenIdByCode("c5"));
+            assertThat(ex.getMessage()).contains("Unknown error code: 12345");
+        }
+    }
+
+    @Test
+    void getOpenIdByCode_shouldReturnNull_whenRestClientThrows() {
+        when(weChatAppConfiguration.getTokenUrl()).thenReturn("u");
+        when(weChatAppConfiguration.getAppId()).thenReturn("a");
+        when(weChatAppConfiguration.getAppSecret()).thenReturn("s");
+
+        when(restClient.get()).thenThrow(new org.springframework.web.client.RestClientException("boom"));
+
+        String result = weChatAppService.getOpenIdByCode("any");
+        assertThat(result).isNull();
     }
 }

@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle email not found exceptions
+     * Handle username not found exceptions
      */
     @ExceptionHandler(EmailNotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleEmailNotFoundException(EmailNotFoundException e) {
@@ -83,7 +83,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle email already exists exceptions
+     * Handle username already exists exceptions
      */
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiResponse<Object>> handleEmailAlreadyExistsException(EmailAlreadyExistsException e) {
@@ -363,6 +363,15 @@ public class GlobalExceptionHandler {
         log.warn("Illegal argument exception: {}", e.getMessage());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, e.getMessage());
         return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * Handle IllegalStateException
+     */
+    public ResponseEntity<ApiResponse<Object>> handleIllegalStateException(IllegalStateException e) {
+        log.warn("Illegal state exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.SYSTEM_ERROR, e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     /**
