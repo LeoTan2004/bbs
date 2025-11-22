@@ -3,6 +3,8 @@ FROM eclipse-temurin:17-jdk-jammy AS builder
 
 ARG MAVEN_SETTING
 
+ARG MAVEN_SETTING_FILE
+
 WORKDIR /app
 
 # 1. Just Copy Maven Wrapper Files, to leverage Docker layer caching
@@ -10,6 +12,15 @@ COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 # 2. Fix line endings and make mvnw executable
 RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
+
+# If a `MAVEN_SETTING_FILE` build-arg is provided pointing to a
+# Maven `settings.xml` file, copy it to `/root/.m2/settings.xml`
+RUN if [ -n "${MAVEN_SETTING_FILE:-}" ]; then \
+      mkdir -p /root/.m2 && cp "$MAVEN_SETTING_FILE" /root/.m2/settings.xml && \
+      echo "Copied Maven settings from ${MAVEN_SETTING_FILE} to /root/.m2/settings.xml"; \
+    else \
+      echo "No MAVEN_SETTING_FILE provided; using default Maven settings"; \
+    fi
 
 # If a `MAVEN_SETTING` build-arg is provided containing the contents
 # of a Maven `settings.xml`, write it to `/root/.m2/settings.xml` so
