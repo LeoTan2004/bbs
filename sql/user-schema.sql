@@ -1,7 +1,7 @@
 USE bbs_dev;
 
 
-CREATE TABLE IF NOT EXISTS users
+CREATE TABLE IF NOT EXISTS `user`
 (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     username      VARCHAR(50)  NOT NULL UNIQUE,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS user_binder
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES `user` (id) ON DELETE CASCADE,
     UNIQUE INDEX idx_identifier_bind_type (identifier, bind_type)
 );
 
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS verified_info
 
     visible     BOOLEAN      NOT NULL,
 
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES `user` (id) ON DELETE CASCADE
 ) comment "Table to store verified user information";
 
 DROP TABLE IF EXISTS verification_request;
