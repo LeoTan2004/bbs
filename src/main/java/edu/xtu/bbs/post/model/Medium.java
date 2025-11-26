@@ -12,6 +12,7 @@ public class Medium implements Serializable {
     @Serial
     private static final long serialVersionUID = 13216348643215464L;
 
+    private Integer id;
     private String displayUrl;
     private String resourceUrl;
     private String type;

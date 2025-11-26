@@ -1,0 +1,53 @@
+package edu.xtu.bbs.post.service;
+
+import edu.xtu.bbs.post.dto.MediumUploadResult;
+import edu.xtu.bbs.post.dto.PostMediumUploadRequest;
+import edu.xtu.bbs.post.exception.*;
+import edu.xtu.bbs.post.model.Medium;
+
+import java.util.List;
+
+public interface PostMediumService {
+
+    /**
+     * Get media by post id
+     *
+     * @param postId the post id
+     * @return list of media
+     */
+    List<Medium> getMediaByPostId(Integer postId);
+
+    /**
+     * Upload media to a draft
+     *
+     * @param userId        the user id
+     * @param postId        the draft post id
+     * @param uploadRequest the upload request
+     * @return the upload result
+     * @throws PostNotFoundException          when the draft post is not found
+     * @throws UploadNotPermittedException    when the user doesn't have permission to upload to this draft
+     * @throws PostStatusNotAllowedException  when the post is not in draft status
+     * @throws UnsupportedMediumTypeException when the file type is not supported
+     * @throws MediumSizeExceededException    when the file size exceeds the limit
+     * @throws TooManyMediaException          when the post already has too many media files
+     */
+    MediumUploadResult uploadMediumToDraft(Integer userId, Integer postId, PostMediumUploadRequest uploadRequest)
+            throws PostNotFoundException, UploadNotPermittedException, PostStatusNotAllowedException,
+            UnsupportedMediumTypeException, MediumSizeExceededException, TooManyMediaException;
+
+    /**
+     * Delete medium from a draft
+     *
+     * @param userId   the user id
+     * @param postId   the draft post id
+     * @param mediumId the medium id
+     * @return the updated list of media
+     * @throws PostNotFoundException         when the draft post is not found
+     * @throws ModifyNotPermittedException   when the user doesn't have permission to modify this draft
+     * @throws PostStatusNotAllowedException when the post is not in draft status
+     * @throws DeletedFailedException        when the medium deletion fails
+     */
+    List<Medium> deleteMediumFromDraft(Integer userId, Integer postId, Integer mediumId)
+            throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, DeletedFailedException;
+
+}
