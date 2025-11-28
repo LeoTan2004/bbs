@@ -1,5 +1,7 @@
 package edu.xtu.bbs.post.service.impl;
 
+import edu.xtu.bbs.post.config.MediaConfiguration;
+import edu.xtu.bbs.post.config.MediaServiceConfiguration;
 import edu.xtu.bbs.post.dto.MediumUploadResult;
 import edu.xtu.bbs.post.dto.PostMediumUploadRequest;
 import edu.xtu.bbs.post.exception.*;
@@ -7,10 +9,10 @@ import edu.xtu.bbs.post.model.Medium;
 import edu.xtu.bbs.post.model.Post;
 import edu.xtu.bbs.post.model.PostStatus;
 import edu.xtu.bbs.post.repo.PostRepository;
+import edu.xtu.bbs.post.service.MediaOssService;
 import edu.xtu.bbs.post.service.PostMediumService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,23 +27,9 @@ import java.util.UUID;
 public class PostMediumServiceImpl implements PostMediumService {
 
     private final PostRepository postRepository;
-
-    // Configuration properties
-    @Value("${bbs.media.max-file-size:10485760}") // 10MB default
-    private Long maxFileSize;
-    
-    @Value("${bbs.media.max-files-per-post:10}")
-    private Integer maxFilesPerPost;
-    
-    @Value("${bbs.media.base-url:http://localhost:8080/api/media}")
-    private String mediaBaseUrl;
-    
-    // Supported media types - should match configuration
-    private static final List<String> SUPPORTED_TYPES = List.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp",
-            "video/mp4", "video/mpeg", "video/quicktime",
-            "application/pdf", "text/plain"
-    );
+    private final MediaConfiguration mediaConfiguration;
+    private final MediaServiceConfiguration mediaServiceConfiguration;
+    private final MediaOssService mediaOssService;
 
     @Override
     public List<Medium> getMediaByPostId(Integer postId) {
@@ -98,10 +86,12 @@ public class PostMediumServiceImpl implements PostMediumService {
         // Validate upload request
         validateUploadRequest(uploadRequest, post);
         
-        // Generate unique filename and URLs
-        String filename = generateUniqueFilename(uploadRequest.type());
-        String uploadUrl = generateUploadUrl(filename);
-        String accessUrl = generateAccessUrl(filename);
+        // Generate upload URL using OSS service
+        String uploadUrl = mediaOssService.generateMediaUploadUrl(userId, uploadRequest.type(), uploadRequest.size());
+        
+        // Generate unique filename and access URL
+        String filename = mediaOssService.generateUniqueFilename(uploadRequest.type());
+        String accessUrl = mediaOssService.generateMediaAccessUrl(userId, filename);
         
         // Create medium record
         Medium medium = new Medium();
@@ -124,7 +114,7 @@ public class PostMediumServiceImpl implements PostMediumService {
 
     @Override
     @Transactional
-    public List<Medium> deleteMediumFromDraft(Integer userId, Integer postId, Integer mediumId)
+    public List<Medium> deleteMediumFromDraft(Integer userId, Integer postId, String mediumId)
             throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, DeletionFailedException {
         
         log.debug("User {} deleting medium {} from post {}", userId, mediumId, postId);
@@ -161,7 +151,7 @@ public class PostMediumServiceImpl implements PostMediumService {
 
     @Override
     @Transactional
-    public Medium updateMediumMetadata(Integer userId, Integer postId, Integer mediumId, String newType)
+    public Medium updateMediumMetadata(Integer userId, Integer postId, String mediumId, String newType)
             throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, UnsupportedMediumTypeException {
         
         log.debug("User {} updating medium {} metadata in post {}", userId, mediumId, postId);
@@ -181,8 +171,9 @@ public class PostMediumServiceImpl implements PostMediumService {
         }
         
         // Validate new type
-        if (!SUPPORTED_TYPES.contains(newType)) {
-            throw new UnsupportedMediumTypeException("medium", newType, SUPPORTED_TYPES.toArray(new String[0]));
+        if (!mediaConfiguration.getAllowTypes().contains(newType)) {
+            throw new UnsupportedMediumTypeException("medium", newType, 
+                    mediaConfiguration.getAllowTypes().toArray(new String[0]));
         }
         
         // Find and update medium
@@ -209,7 +200,7 @@ public class PostMediumServiceImpl implements PostMediumService {
     }
 
     @Override
-    public Boolean hasAccessPermission(Integer userId, Integer mediumId) {
+    public Boolean hasAccessPermission(Integer userId, String mediumId) {
         log.debug("Checking access permission for user {} to medium {}", userId, mediumId);
         
         // Find post containing this medium
@@ -241,51 +232,26 @@ public class PostMediumServiceImpl implements PostMediumService {
             throws UnsupportedMediumTypeException, MediumSizeExceededException, TooManyMediaException {
         
         // Check file type
-        if (!SUPPORTED_TYPES.contains(request.type())) {
-            throw new UnsupportedMediumTypeException("uploaded_file", request.type(), SUPPORTED_TYPES.toArray(new String[0]));
+        if (!mediaConfiguration.getAllowTypes().contains(request.type())) {
+            throw new UnsupportedMediumTypeException("uploaded_file", request.type(), 
+                    mediaConfiguration.getAllowTypes().toArray(new String[0]));
         }
         
         // Check file size
-        if (request.size() > maxFileSize) {
-            throw new MediumSizeExceededException("uploaded_file", request.size(), maxFileSize);
+        if (request.size() > mediaConfiguration.getMaxSize().toBytes()) {
+            throw new MediumSizeExceededException("uploaded_file", request.size(), 
+                    mediaConfiguration.getMaxSize().toBytes());
         }
         
         // Check number of files
         int currentFileCount = post.getMedia() != null ? post.getMedia().size() : 0;
-        if (currentFileCount >= maxFilesPerPost) {
-            throw new TooManyMediaException(post.getId(), currentFileCount, maxFilesPerPost);
+        if (currentFileCount >= mediaServiceConfiguration.getMaxFilesPerPost()) {
+            throw new TooManyMediaException(post.getId(), currentFileCount, 
+                    mediaServiceConfiguration.getMaxFilesPerPost());
         }
     }
 
-    private String generateUniqueFilename(String contentType) {
-        String extension = getFileExtension(contentType);
-        return UUID.randomUUID().toString() + extension;
-    }
-
-    private String getFileExtension(String contentType) {
-        return switch (contentType) {
-            case "image/jpeg" -> ".jpg";
-            case "image/png" -> ".png";
-            case "image/gif" -> ".gif";
-            case "image/webp" -> ".webp";
-            case "video/mp4" -> ".mp4";
-            case "video/mpeg" -> ".mpeg";
-            case "video/quicktime" -> ".mov";
-            case "application/pdf" -> ".pdf";
-            case "text/plain" -> ".txt";
-            default -> "";
-        };
-    }
-
-    private String generateUploadUrl(String filename) {
-        return mediaBaseUrl + "/upload/" + filename;
-    }
-
-    private String generateAccessUrl(String filename) {
-        return mediaBaseUrl + "/files/" + filename;
-    }
-
-    private Integer generateMediumId() {
-        return (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
+    private String generateMediumId() {
+        return UUID.randomUUID().toString();
     }
 }

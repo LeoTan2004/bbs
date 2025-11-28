@@ -35,9 +35,11 @@ management:
 
 bbs:
   oss:
+    # Common OSS configuration
     secret-id: ${OSS_SECRET_ID:secret-id}
     secret-key: ${OSS_SECRET_KEY:secret-key}
     region: ${OSS_REGION:ap-guangzhou}
+    # User avatar configuration
     avatar:
       bucket: ${OSS_AVATAR_BUCKET:avatar-bucket}
       allow-types:
@@ -49,24 +51,33 @@ bbs:
       max-size: 5MB
       prefix: "/avatars"
       expired-after: 30s
-  media:
-    base-url: ${MEDIA_BASE_URL:http://localhost:8080/api/media}
-    max-file-size: ${MEDIA_MAX_FILE_SIZE:10485760} # 10MB
-    max-files-per-post: ${MEDIA_MAX_FILES_PER_POST:10}
-    allowed-types:
-      - "image/jpeg"
-      - "image/png"
-      - "image/gif"
-      - "image/webp"
-      - "video/mp4"
-      - "video/mpeg"
-      - "video/quicktime"
-      - "application/pdf"
-      - "text/plain"
-    storage:
+    # Post media file configuration
+    media:
       bucket: ${OSS_MEDIA_BUCKET:media-bucket}
+      allow-types:
+        - "image/jpeg"
+        - "image/png"
+        - "image/gif"
+        - "image/webp"
+        - "image/svg+xml"
+        - "video/mp4"
+        - "video/mpeg"
+        - "video/quicktime"
+        - "video/webm"
+        - "audio/mpeg"
+        - "audio/wav"
+        - "audio/ogg"
+        - "application/pdf"
+        - "text/plain"
+        - "application/msword"
+        - "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      max-size: 50MB
       prefix: "/posts"
       expired-after: 60s
+  # Media service configuration
+  media:
+    base-url: ${MEDIA_BASE_URL:http://localhost:8080/api/media}
+    max-files-per-post: ${MEDIA_MAX_FILES_PER_POST:10}
   security:
     jwt:
       secret-key: ${JWT_SECRET_KEY}

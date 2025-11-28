@@ -56,7 +56,7 @@ public interface PostMediumService {
      * @throws PostStatusNotAllowedException when the post is not in draft status
      * @throws DeletionFailedException       when the medium deletion fails
      */
-    List<Medium> deleteMediumFromDraft(Integer userId, Integer postId, Integer mediumId)
+    List<Medium> deleteMediumFromDraft(Integer userId, Integer postId, String mediumId)
             throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, DeletionFailedException;
 
     /**
@@ -72,7 +72,7 @@ public interface PostMediumService {
      * @throws PostStatusNotAllowedException when the post is not in draft status
      * @throws UnsupportedMediumTypeException when the medium type is not supported
      */
-    Medium updateMediumMetadata(Integer userId, Integer postId, Integer mediumId, String newType)
+    Medium updateMediumMetadata(Integer userId, Integer postId, String mediumId, String newType)
             throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, UnsupportedMediumTypeException;
 
     /**
@@ -82,6 +82,6 @@ public interface PostMediumService {
      * @param mediumId the medium id
      * @return true if user has access permission
      */
-    Boolean hasAccessPermission(Integer userId, Integer mediumId);
+    Boolean hasAccessPermission(Integer userId, String mediumId);
 
 }
