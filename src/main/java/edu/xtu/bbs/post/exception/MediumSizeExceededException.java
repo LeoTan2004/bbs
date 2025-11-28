@@ -3,7 +3,7 @@ package edu.xtu.bbs.post.exception;
 import lombok.Getter;
 
 @Getter
-public class MediumSizeExceededException extends Exception {
+public class MediumSizeExceededException extends RuntimeException {
     private final String fileName;
     private final Long fileSize;
     private final Long maxAllowedSize;

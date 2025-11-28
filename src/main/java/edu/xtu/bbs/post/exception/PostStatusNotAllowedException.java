@@ -4,7 +4,7 @@ import edu.xtu.bbs.post.model.PostStatus;
 import lombok.Getter;
 
 @Getter
-public class PostStatusNotAllowedException extends Exception {
+public class PostStatusNotAllowedException extends RuntimeException {
     private final Integer postId;
     private final PostStatus currentStatus;
     private final String operation;

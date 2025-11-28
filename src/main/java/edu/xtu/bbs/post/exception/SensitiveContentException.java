@@ -3,7 +3,7 @@ package edu.xtu.bbs.post.exception;
 import lombok.Getter;
 
 @Getter
-public class SensitiveContentException extends Exception {
+public class SensitiveContentException extends RuntimeException {
     private final String contentType;
     private final String detectedReason;
     private final String contentPreview;

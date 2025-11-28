@@ -3,6 +3,7 @@ package edu.xtu.bbs.post.service;
 import edu.xtu.bbs.post.dto.DraftContentEditor;
 import edu.xtu.bbs.post.exception.*;
 import edu.xtu.bbs.post.model.Post;
+import edu.xtu.bbs.post.model.PostStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -95,6 +96,34 @@ public interface PostService {
     Post getPublishedPostById(Integer postId);
 
     /**
+     * Search published posts by keyword
+     *
+     * @param keyword  the search keyword
+     * @param pageable Pagination information
+     * @return Paginated list of posts matching the keyword
+     */
+    Page<Post> searchPublishedPosts(String keyword, Pageable pageable);
+
+    /**
+     * Get hot published posts (sorted by popularity metrics)
+     *
+     * @param pageable Pagination information
+     * @return Paginated list of hot posts
+     */
+    Page<Post> getHotPublishedPosts(Pageable pageable);
+
+    /**
+     * Update post status (for content moderation)
+     *
+     * @param postId    the post id
+     * @param newStatus the new status
+     * @return the updated post
+     * @throws PostNotFoundException when the post is not found
+     */
+    Post updatePostStatus(Integer postId, PostStatus newStatus)
+            throws PostNotFoundException;
+
+    /**
      * Delete published post by id
      *
      * @param userId the user id
@@ -102,10 +131,10 @@ public interface PostService {
      * @return true if deleted successfully, false otherwise
      * @throws PostNotFoundException       when the post is not found
      * @throws ModifyNotPermittedException when the user doesn't have permission to delete the post
-     * @throws DeletedFailedException      when the deletion operation fails
+     * @throws DeletionFailedException     when the deletion operation fails
      */
     Boolean deletePost(Integer userId, Integer postId)
-            throws PostNotFoundException, ModifyNotPermittedException, DeletedFailedException;
+            throws PostNotFoundException, ModifyNotPermittedException, DeletionFailedException;
 
     // endregion
 }

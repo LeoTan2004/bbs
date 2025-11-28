@@ -3,7 +3,7 @@ package edu.xtu.bbs.post.exception;
 import lombok.Getter;
 
 @Getter
-public class TooManyMediaException extends Exception {
+public class TooManyMediaException extends RuntimeException {
     private final Integer postId;
     private final Integer currentMediaCount;
     private final Integer maxAllowedCount;

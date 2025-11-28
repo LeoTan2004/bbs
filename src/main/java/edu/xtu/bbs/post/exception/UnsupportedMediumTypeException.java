@@ -3,7 +3,7 @@ package edu.xtu.bbs.post.exception;
 import lombok.Getter;
 
 @Getter
-public class UnsupportedMediumTypeException extends Exception {
+public class UnsupportedMediumTypeException extends RuntimeException {
     private final String fileName;
     private final String fileType;
     private final String[] supportedTypes;

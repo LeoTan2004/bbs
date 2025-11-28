@@ -2,6 +2,7 @@ package edu.xtu.bbs.post.service;
 
 import edu.xtu.bbs.post.exception.PostNotFoundException;
 import edu.xtu.bbs.post.exception.PostStatusNotAllowedException;
+import edu.xtu.bbs.post.model.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -14,11 +15,11 @@ import org.springframework.data.domain.Pageable;
 public interface PostLikeService {
 
     /**
-     * Like a post
+     * Like a post (idempotent operation)
      *
      * @param userId the user id
      * @param postId the post id
-     * @return is liked now
+     * @return true if post is now liked, false if was already liked
      * @throws PostNotFoundException         when the post is not found
      * @throws PostStatusNotAllowedException when the post is not in published status
      */
@@ -26,11 +27,11 @@ public interface PostLikeService {
             throws PostNotFoundException, PostStatusNotAllowedException;
 
     /**
-     * Unlike a post
+     * Unlike a post (idempotent operation)
      *
      * @param userId the user id
      * @param postId the post id
-     * @return is unliked now
+     * @return true if post was unliked, false if was already not liked
      * @throws PostNotFoundException         when the post is not found
      * @throws PostStatusNotAllowedException when the post is not in published status
      */
@@ -47,14 +48,16 @@ public interface PostLikeService {
     Boolean hasLikedPost(Integer userId, Integer postId);
 
     /**
-     * Get paginated list of post IDs liked by a user
+     * Get paginated list of posts liked by a user
      *
      * @param userId   the user id
      * @param pageable pagination information
-     * @return paginated list of liked post IDs
+     * @return paginated list of liked posts
      */
-    Page<Integer> getLikedPostsByUser(Integer userId, Pageable pageable);
+    Page<Post> getLikedPostsByUser(Integer userId, Pageable pageable);
 
     Integer countUserLikedPosts(Integer userId);
+
+    Integer countPostLikedByUsers(Integer postId);
 
 }

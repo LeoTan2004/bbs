@@ -3,7 +3,7 @@ package edu.xtu.bbs.post.exception;
 import lombok.Getter;
 
 @Getter
-public class ModifyNotPermittedException extends Exception {
+public class ModifyNotPermittedException extends RuntimeException {
     private final int postId;
     private final int userId;
 

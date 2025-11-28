@@ -3,7 +3,7 @@ package edu.xtu.bbs.post.exception;
 import lombok.Getter;
 
 @Getter
-public class DeletedFailedException extends Exception {
+public class DeletedFailedException extends RuntimeException {
 
     private final int postId;
 

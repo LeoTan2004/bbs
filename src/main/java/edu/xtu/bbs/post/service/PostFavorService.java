@@ -15,11 +15,11 @@ import org.springframework.data.domain.Pageable;
 public interface PostFavorService {
 
     /**
-     * Favorite a post
+     * Favorite a post (idempotent operation)
      *
      * @param userId the user id
      * @param postId the post id
-     * @return true if the post is favorite now
+     * @return true if the post is now favorited, false if was already favorited
      * @throws PostNotFoundException         when the post is not found
      * @throws PostStatusNotAllowedException when the post is not in published status
      */
@@ -31,11 +31,11 @@ public interface PostFavorService {
      *
      * @param userId the user id
      * @param postId the post id
-     * @return true if the post is unfavorited now
+     * @return true if the post was unfavorited, false if was already not favorited
      * @throws PostNotFoundException         when the post is not found
      * @throws PostStatusNotAllowedException when the post is not in published status
      */
-    Boolean unfavoredPost(Integer userId, Integer postId)
+    Boolean unfavorPost(Integer userId, Integer postId)
             throws PostNotFoundException, PostStatusNotAllowedException;
 
     /**
