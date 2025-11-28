@@ -2,11 +2,7 @@ package edu.xtu.bbs.user.service;
 
 import edu.xtu.bbs.user.dto.CreateUserRequest;
 import edu.xtu.bbs.user.dto.WeChatRegisterRequest;
-import edu.xtu.bbs.user.exception.EmailAlreadyExistsException;
-import edu.xtu.bbs.user.exception.EmailNotFoundException;
-import edu.xtu.bbs.user.exception.InvalidVerificationException;
-import edu.xtu.bbs.user.exception.UsernameOccupiedException;
-import edu.xtu.bbs.user.exception.WeChatOpenIdAlreadyExistsException;
+import edu.xtu.bbs.user.exception.*;
 import edu.xtu.bbs.user.model.Role;
 import edu.xtu.bbs.user.model.Status;
 import edu.xtu.bbs.user.model.User;
@@ -18,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
@@ -43,7 +40,9 @@ public class AuthenticationService {
     private final UserBinderService userBinderService;
     private final WeChatAppService weChatAppService;
 
-    public AuthenticationService(UserService userService, VerificationService verificationService, AvatarService avatarService, PasswordEncoder passwordEncoder, UserRepository userRepository, UserBinderService userBinderService, WeChatAppService weChatAppService) {
+    public AuthenticationService(UserService userService, VerificationService verificationService,
+                                 AvatarService avatarService, PasswordEncoder passwordEncoder, UserRepository userRepository,
+                                 UserBinderService userBinderService, WeChatAppService weChatAppService) {
         this.userService = userService;
         this.verificationService = verificationService;
         this.avatarService = avatarService;
@@ -53,7 +52,6 @@ public class AuthenticationService {
         this.weChatAppService = weChatAppService;
     }
 
-
     /**
      * Pre-bind email verification
      * <p>
@@ -62,7 +60,8 @@ public class AuthenticationService {
      *
      * @param email the email to be bound
      * @return the token that can be used to verify the code
-     * @throws EmailAlreadyExistsException if the email is already bound by another user
+     * @throws EmailAlreadyExistsException if the email is already bound by another
+     *                                     user
      */
     public String bindEmailVerify(String email) throws EmailAlreadyExistsException {
         if (userService.existsByEmail(email)) {
@@ -71,7 +70,6 @@ public class AuthenticationService {
 
         return verificationService.sendCode(email, BIND_EMAIL);
     }
-
 
     /**
      * Pre-login email verification
@@ -97,16 +95,23 @@ public class AuthenticationService {
      * @param request           the create user request
      * @param verificationParam the verification param
      * @return the user that has been created
-     * @throws UsernameOccupiedException            if the username has been occupied
-     * @throws EmailAlreadyExistsException          if the email has been bound by another user
+     * @throws UsernameOccupiedException            if the username has been
+     *                                              occupied
+     * @throws EmailAlreadyExistsException          if the email has been bound by
+     *                                              another user
      * @throws InvalidVerificationException         if the verification is invalid
-     * @throws VerificationRequestNotFoundException if the verification request is not found
-     * @throws VerificationTooFrequentException     if the verification is too frequent
-     * @throws VerificationScopeIncorrectException  if the verification scope is incorrect
+     * @throws VerificationRequestNotFoundException if the verification request is
+     *                                              not found
+     * @throws VerificationTooFrequentException     if the verification is too
+     *                                              frequent
+     * @throws VerificationScopeIncorrectException  if the verification scope is
+     *                                              incorrect
      * @throws VerificationExpiredException         if the verification has expired
      */
     public User register(CreateUserRequest request, VerificationParam verificationParam)
-            throws UsernameOccupiedException, EmailAlreadyExistsException, InvalidVerificationException, VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationScopeIncorrectException, VerificationExpiredException {
+            throws UsernameOccupiedException, EmailAlreadyExistsException, InvalidVerificationException,
+            VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationScopeIncorrectException,
+            VerificationExpiredException {
 
         if (request == null) {
             throw new IllegalArgumentException("Invalid registration request");
@@ -150,12 +155,15 @@ public class AuthenticationService {
      * 
      * @param request WeChat registration request containing code and user info
      * @return the user that has been created
-     * @throws UsernameOccupiedException if the username has been occupied
-     * @throws WeChatOpenIdAlreadyExistsException if the WeChat OpenID has been bound by another user
+     * @throws UsernameOccupiedException          if the username has been occupied
+     * @throws WeChatOpenIdAlreadyExistsException if the WeChat OpenID has been
+     *                                            bound by another user
+     * @throws InvalidWeChatCodeException         if the WeChat code is invalid
      */
-    public User registerWithWeChat(WeChatRegisterRequest request) 
-            throws UsernameOccupiedException, WeChatOpenIdAlreadyExistsException {
-        
+    @Transactional
+    public User registerWithWeChat(WeChatRegisterRequest request)
+            throws UsernameOccupiedException, WeChatOpenIdAlreadyExistsException, InvalidWeChatCodeException {
+
         if (request == null) {
             throw new IllegalArgumentException("Invalid WeChat registration request");
         }
@@ -164,11 +172,15 @@ public class AuthenticationService {
         if (userService.existsByUsername(request.username())) {
             throw new UsernameOccupiedException(request.username());
         }
-
+        String openId;
         // Get OpenID from WeChat using the authorization code
-        String openId = weChatAppService.getOpenIdByCode(request.code());
-        if (openId == null || openId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Failed to get WeChat OpenID from code");
+        try {
+            openId = weChatAppService.getOpenIdByCode(request.code());
+            if (openId == null || openId.trim().isEmpty()) {
+                throw new IllegalArgumentException("Failed to get WeChat OpenID from code");
+            }
+        } catch (IllegalArgumentException e) {
+            throw new InvalidWeChatCodeException("Failed to get WeChat OpenID: " + e.getMessage(), e);
         }
 
         // Check if WeChat OpenID already exists
@@ -183,7 +195,7 @@ public class AuthenticationService {
         user.setNickname(request.nickname() != null ? request.nickname() : request.username());
         user.setBio(request.bio());
         user.setRole(Role.User);
-        
+
         // Generate avatar URL
         final String avatarUrl = avatarService.generateAvatarUrl(user.getUsername());
         user.setAvatarUrl(avatarUrl);
@@ -198,7 +210,6 @@ public class AuthenticationService {
         return savedUser;
     }
 
-
     public String preUpdatePassword(String email) throws EmailNotFoundException {
         if (!userService.existsByEmail(email)) {
             throw new EmailNotFoundException(email, "Email not found: " + email);
@@ -207,9 +218,9 @@ public class AuthenticationService {
         return verificationService.sendCode(email, CHANGE_PWD);
     }
 
-
     public boolean updatePassword(String email, String newPassword, VerificationParam param)
-            throws VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationExpiredException, VerificationScopeIncorrectException, InvalidVerificationException, EmailNotFoundException {
+            throws VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationExpiredException,
+            VerificationScopeIncorrectException, InvalidVerificationException, EmailNotFoundException {
 
         if (!userService.existsByEmail(email)) {
             throw new EmailNotFoundException(email, "Email not found");
@@ -230,7 +241,9 @@ public class AuthenticationService {
         return false;
     }
 
-    private boolean verify(VerificationParam param, String scope, String principle) throws VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationExpiredException, InvalidVerificationException, VerificationScopeIncorrectException {
+    private boolean verify(VerificationParam param, String scope, String principle)
+            throws VerificationRequestNotFoundException, VerificationTooFrequentException, VerificationExpiredException,
+            InvalidVerificationException, VerificationScopeIncorrectException {
 
         if (!Objects.equals(principle, param.principle())) {
             throw new InvalidVerificationException();
@@ -242,7 +255,6 @@ public class AuthenticationService {
         return verificationService.verifyCode(param);
     }
 
-
     public User getCurrentUser() {
         final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -252,9 +264,11 @@ public class AuthenticationService {
         if (authentication.getPrincipal() instanceof User user) {
             return user;
         } else if (authentication.getPrincipal() instanceof String username) {
-            return userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("couldn't find user: " + username));
+            return userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("couldn't find user: " + username));
         } else {
-            throw new IllegalStateException("Unexpected principal type: " + authentication.getPrincipal().getClass().getName());
+            throw new IllegalStateException(
+                    "Unexpected principal type: " + authentication.getPrincipal().getClass().getName());
         }
     }
 }

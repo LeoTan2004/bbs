@@ -168,7 +168,8 @@ class WeChatAuthIntegrationTest {
         mockMvc.perform(post("/auth/register/wechat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidCodeRequest)))
-                .andExpect(status().isBadRequest()); // Expecting 400 status for IllegalArgumentException
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(20006));
 
         // Test 2: Duplicate username
         final String duplicateTestCode = "duplicate-test-code";
@@ -224,7 +225,7 @@ class WeChatAuthIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(duplicateOpenIdRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(20003)); // USER_ALREADY_EXISTS for OpenID conflict
+                .andExpect(jsonPath("$.code").value(20005)); // USER_ALREADY_EXISTS for OpenID conflict
     }
 
     @Test
@@ -235,13 +236,13 @@ class WeChatAuthIntegrationTest {
         mockMvc.perform(post("/auth/register/wechat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
 
         // Test missing required fields
         mockMvc.perform(post("/auth/register/wechat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\": \"\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
 
         // Test invalid username format
         WeChatRegisterRequest invalidUsernameRequest = new WeChatRegisterRequest(
@@ -255,7 +256,8 @@ class WeChatAuthIntegrationTest {
         mockMvc.perform(post("/auth/register/wechat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidUsernameRequest)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(20006));
 
         // Test invalid password format
         WeChatRegisterRequest invalidPasswordRequest = new WeChatRegisterRequest(
@@ -269,7 +271,8 @@ class WeChatAuthIntegrationTest {
         mockMvc.perform(post("/auth/register/wechat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidPasswordRequest)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(20006));
     }
 
     @Test

@@ -50,7 +50,7 @@ public class AuthController {
 
     @PostMapping("/register/wechat")
     public WeChatRegisterResponse registerWithWeChat(@RequestBody WeChatRegisterRequest request)
-            throws UsernameOccupiedException, WeChatOpenIdAlreadyExistsException {
+            throws UsernameOccupiedException, WeChatOpenIdAlreadyExistsException, InvalidWeChatCodeException {
         if (request == null) {
             throw new IllegalArgumentException("Invalid WeChat registration request");
         }

@@ -29,6 +29,8 @@ public enum ResponseCode {
     PASSWORD_INCORRECT(20002, "Incorrect password"),
     USER_ALREADY_EXISTS(20003, "User already exists"),
     FOLLOW_SELF_NOT_ALLOWED(20004, "Cannot follow yourself"),
+    WECHAT_OPENID_ALREADY_EXISTS(20005, "WeChat OpenID already bound to another user"),
+    WECHAT_CODE_INVALID(20006, "Invalid WeChat code"),
 
     // ==================== Post Module (3xxxx) ====================
     POST_NOT_FOUND(30001, "Post not found"),

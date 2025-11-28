@@ -73,7 +73,8 @@ class WeChatAuthControllerTest {
         mockMvc.perform(post("/auth/register/wechat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(20006));
     }
 
     @Test
@@ -99,7 +100,7 @@ class WeChatAuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(20003)); // USER_ALREADY_EXISTS
+                .andExpect(jsonPath("$.code").value(20005)); // USER_ALREADY_EXISTS
     }
 
     @Test
@@ -121,6 +122,7 @@ class WeChatAuthControllerTest {
         mockMvc.perform(post("/auth/register/wechat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(20006));
     }
 }

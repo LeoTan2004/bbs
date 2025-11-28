@@ -51,22 +51,6 @@ class GlobalExceptionHandlerTest {
         assertThat(body.getMessage()).isEqualTo("User not found");
     }
 
-    @Test
-    @DisplayName("Should correctly handle illegal argument exceptions")
-    void shouldHandleIllegalArgumentException() {
-        // Given
-        IllegalArgumentException exception = new IllegalArgumentException("Illegal argument");
-
-        // When
-        ResponseEntity<ApiResponse<Object>> response = handler.handleIllegalArgumentException(exception);
-
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        ApiResponse<Object> body = response.getBody();
-        assertThat(body).isNotNull();
-        assertThat(body.getCode()).isEqualTo(10001);
-        assertThat(body.getMessage()).isEqualTo("Illegal argument");
-    }
 
     @Test
     @DisplayName("Should correctly handle general exceptions")

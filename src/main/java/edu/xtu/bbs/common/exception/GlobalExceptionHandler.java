@@ -35,12 +35,12 @@ import java.util.Set;
 
 /**
  * Global Exception Handler
- * Handles all exceptions in the application and returns standardized response format
+ * Handles all exceptions in the application and returns standardized response
+ * format
  */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
-
 
     /**
      * Handle business exceptions
@@ -93,6 +93,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle invalid WeChat code exceptions
+     */
+    @ExceptionHandler(InvalidWeChatCodeException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidWechatCodeException(InvalidWeChatCodeException e) {
+        log.warn("Invalid WeChat code exception: {}", e.toString());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.WECHAT_CODE_INVALID, "Invalid WeChat code");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Handle invalid username exceptions
      */
     @ExceptionHandler(InvalidUsernameException.class)
@@ -106,9 +116,10 @@ public class GlobalExceptionHandler {
      * Handle WeChat OpenID already exists exceptions
      */
     @ExceptionHandler(WeChatOpenIdAlreadyExistsException.class)
-    public ResponseEntity<ApiResponse<Object>> handleWeChatOpenIdAlreadyExistsException(WeChatOpenIdAlreadyExistsException e) {
+    public ResponseEntity<ApiResponse<Object>> handleWeChatOpenIdAlreadyExistsException(
+            WeChatOpenIdAlreadyExistsException e) {
         log.warn("WeChat OpenID already exists exception: {}", e.toString());
-        ApiResponse<Object> response = ApiResponse.error(ResponseCode.USER_ALREADY_EXISTS);
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.WECHAT_OPENID_ALREADY_EXISTS);
         return ResponseEntity.ok(response);
     }
 
@@ -136,7 +147,8 @@ public class GlobalExceptionHandler {
      * Handle verification request too frequent exceptions
      */
     @ExceptionHandler(VerificationTooFrequentException.class)
-    public ResponseEntity<ApiResponse<Object>> handleVerificationTooFrequentException(VerificationTooFrequentException e) {
+    public ResponseEntity<ApiResponse<Object>> handleVerificationTooFrequentException(
+            VerificationTooFrequentException e) {
         log.warn("Verification request too frequent exception: {}", e.toString());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.TOO_MANY_REQUESTS);
         return ResponseEntity.ok(response);
@@ -146,7 +158,8 @@ public class GlobalExceptionHandler {
      * Handle verification scope incorrect exceptions
      */
     @ExceptionHandler(VerificationScopeIncorrectException.class)
-    public ResponseEntity<ApiResponse<Object>> handleVerificationScopeIncorrectException(VerificationScopeIncorrectException e) {
+    public ResponseEntity<ApiResponse<Object>> handleVerificationScopeIncorrectException(
+            VerificationScopeIncorrectException e) {
         log.warn("Verification scope incorrect exception: {}", e.toString());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, "Incorrect verification scope");
         return ResponseEntity.ok(response);
@@ -156,7 +169,8 @@ public class GlobalExceptionHandler {
      * Handle verification request not found exceptions
      */
     @ExceptionHandler(VerificationRequestNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleVerificationRequestNotFoundException(VerificationRequestNotFoundException e) {
+    public ResponseEntity<ApiResponse<Object>> handleVerificationRequestNotFoundException(
+            VerificationRequestNotFoundException e) {
         log.warn("Verification request not found exception: {}", e.toString());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, "Verification request not found");
         return ResponseEntity.ok(response);
@@ -246,7 +260,8 @@ public class GlobalExceptionHandler {
      * Handle parameter validation exceptions (triggered by @Valid annotation)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValidException(
+            MethodArgumentNotValidException e) {
         log.warn("Parameter validation exception: {}", e.getMessage());
 
         return getApiResponseResponseEntity(e.getBindingResult());
@@ -297,7 +312,8 @@ public class GlobalExceptionHandler {
      * Handle request method not supported exceptions
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
+    public ResponseEntity<ApiResponse<Object>> handleHttpRequestMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException e) {
         log.warn("Request method not supported exception: {}", e.getMessage());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, "Request method not allowed");
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(response);
@@ -307,7 +323,8 @@ public class GlobalExceptionHandler {
      * Handle missing request parameter exceptions
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
+    public ResponseEntity<ApiResponse<Object>> handleMissingServletRequestParameterException(
+            MissingServletRequestParameterException e) {
         log.warn("Missing request parameter exception: {}", e.getMessage());
         String message = String.format("Missing required request parameter: %s", e.getParameterName());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, message);
@@ -318,7 +335,8 @@ public class GlobalExceptionHandler {
      * Handle method argument type mismatch exceptions
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException e) {
         log.warn("Method argument type mismatch exception: {}", e.getMessage());
         String message = String.format("Parameter %s with value %s has incorrect type", e.getName(), e.getValue());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, message);
@@ -329,7 +347,8 @@ public class GlobalExceptionHandler {
      * Handle HTTP message not readable exceptions
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException e) {
         log.warn("HTTP message not readable exception: {}", e.getMessage());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, "Request body format error");
         return ResponseEntity.badRequest().body(response);
@@ -356,18 +375,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle IllegalArgumentException
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.warn("Illegal argument exception: {}", e.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, e.getMessage());
-        return ResponseEntity.badRequest().body(response);
-    }
-
-    /**
      * Handle IllegalStateException
      */
+    @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalStateException(IllegalStateException e) {
         log.warn("Illegal state exception: {}", e.getMessage());
         ApiResponse<Object> response = ApiResponse.error(ResponseCode.SYSTEM_ERROR, e.getMessage());
