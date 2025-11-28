@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public_matric
     id         INT AUTO_INCREMENT PRIMARY KEY,
     post_id    INT NOT NULL,
 
-    views      INT       DEFAULT 0,
+    comments INT DEFAULT 0,
     likes      INT       DEFAULT 0,
     favorites  INT       DEFAULT 0,
 

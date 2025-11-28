@@ -28,11 +28,11 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Inte
     Optional<PostFavorite> findByPostIdAndUserId(Integer postId, Integer userId);
 
     /**
-     * Check if a user has favorited a specific post
+     * Check if a user has favorite a specific post
      *
      * @param postId The post ID
      * @param userId The user ID
-     * @return True if the user has favorited the post
+     * @return True if the user has favorite the post
      */
     boolean existsByPostIdAndUserId(Integer postId, Integer userId);
 
@@ -82,22 +82,22 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Inte
     // Custom JPQL queries for more complex operations
 
     /**
-     * Find users who favorited a specific post
+     * Find users who are a favorite a specific post
      *
      * @param postId The post ID
-     * @return List of user IDs who favorited the post
+     * @return List of user IDs who is a favorite the post
      */
     @Query("SELECT pf.user.id FROM PostFavorite pf WHERE pf.post.id = :postId ORDER BY pf.createdAt DESC")
     List<Integer> findUserIdsByPostId(@Param("postId") Integer postId);
 
     /**
-     * Find posts favorited by a user in a specific time range
+     * Find posts favorite by a user in a specific time range
      *
      * @param userId    The user ID
      * @param startTime Start of the time range
      * @param endTime   End of the time range
      * @param pageable  Pagination information
-     * @return Paginated list of posts favorited by the user in the time range
+     * @return Paginated list of posts favorite by the user in the time range
      */
     @Query("SELECT pf FROM PostFavorite pf " +
             "WHERE pf.user.id = :userId " +
@@ -109,7 +109,7 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Inte
                                                     Pageable pageable);
 
     /**
-     * Find most favorited posts in a time range
+     * Find most favorite posts in a time range
      *
      * @param startTime Start of the time range
      * @param endTime   End of the time range
@@ -120,7 +120,7 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Inte
             "WHERE pf.createdAt BETWEEN :startTime AND :endTime " +
             "GROUP BY pf.post.id " +
             "ORDER BY favoriteCount DESC")
-    Page<Object[]> findMostFavoritedPostsInTimeRange(@Param("startTime") Instant startTime,
+    Page<Object[]> findMostFavoritePostsInTimeRange(@Param("startTime") Instant startTime,
                                                      @Param("endTime") Instant endTime,
                                                      Pageable pageable);
 
@@ -136,7 +136,7 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Inte
     List<Object[]> getFavoriteCountsForPosts(@Param("postIds") List<Integer> postIds);
 
     /**
-     * Find users who favorited posts by a specific author
+     * Find users who are a favorite posts by a specific author
      *
      * @param authorId The author's ID
      * @param pageable Pagination information
@@ -145,7 +145,7 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Inte
     @Query("SELECT DISTINCT pf.user.id FROM PostFavorite pf " +
             "WHERE pf.post.author.id = :authorId " +
             "ORDER BY pf.createdAt DESC")
-    Page<Integer> findUsersWhoFavoritedAuthorPosts(@Param("authorId") Integer authorId, Pageable pageable);
+    Page<Integer> findUsersWhoFavoriteAuthorPosts(@Param("authorId") Integer authorId, Pageable pageable);
 
     /**
      * Count favorites received by an author in a time range
@@ -163,7 +163,7 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Inte
                                                    @Param("endTime") Instant endTime);
 
     /**
-     * Find posts that are both liked and favorited by a user
+     * Find posts that are both liked and favorite by a user
      *
      * @param userId The user ID
      * @return List of post IDs that are both liked and favorited by the user
@@ -171,7 +171,7 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Inte
     @Query("SELECT pf.post.id FROM PostFavorite pf " +
             "WHERE pf.user.id = :userId " +
             "AND pf.post.id IN (SELECT pl.post.id FROM PostLike pl WHERE pl.user.id = :userId)")
-    List<Integer> findPostsBothLikedAndFavorited(@Param("userId") Integer userId);
+    List<Integer> findPostsBothLikedAndFavorite(@Param("userId") Integer userId);
 
     /**
      * Find user's favorite posts by category

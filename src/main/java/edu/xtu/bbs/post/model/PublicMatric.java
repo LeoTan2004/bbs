@@ -26,8 +26,8 @@ public class PublicMatric {
     private Post post;
 
     @ColumnDefault("0")
-    @Column(name = "views")
-    private Integer views;
+    @Column(name = "comments")
+    private Integer comments;
 
     @ColumnDefault("0")
     @Column(name = "likes")
