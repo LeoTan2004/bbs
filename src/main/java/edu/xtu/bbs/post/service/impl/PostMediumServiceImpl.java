@@ -84,16 +84,19 @@ public class PostMediumServiceImpl implements PostMediumService {
         // Validate upload request
         validateUploadRequest(uploadRequest, post);
         
-        // Generate upload URL using OSS service
-        String uploadUrl = mediaOssService.generateMediaUploadUrl(userId, uploadRequest.type(), uploadRequest.size());
+        // Generate auto-increment ID for this post's media
+        int autoIncrementId = getNextAutoIncrementId(post);
         
-        // Generate unique filename and access URL
-        String filename = mediaOssService.generateUniqueFilename(uploadRequest.type());
-        String accessUrl = mediaOssService.generateMediaAccessUrl(userId, filename);
+        // Generate upload URL using MediaOssService with postId and autoIncrementId
+        String uploadUrl = mediaOssService.generateMediaUploadUrl(postId, autoIncrementId, uploadRequest.type(), uploadRequest.size());
+        
+        // Generate unique filename and access URL using postId and autoIncrementId
+        String filename = mediaOssService.generateUniqueFilename(autoIncrementId, uploadRequest.type());
+        String accessUrl = mediaOssService.generateMediaAccessUrl(postId, autoIncrementId, filename);
         
         // Create medium record
         Medium medium = new Medium();
-        medium.setId(generateMediumId());
+        medium.setId(postId + "_" + autoIncrementId); // 使用 postId_autoIncrementId 格式
         medium.setType(uploadRequest.type());
         medium.setDisplayUrl(accessUrl);
         medium.setResourceUrl(accessUrl);
@@ -131,20 +134,46 @@ public class PostMediumServiceImpl implements PostMediumService {
             throw new PostStatusNotAllowedException(postId, post.getStatus(), "delete media");
         }
         
-        // Remove medium from list
+        // Get medium list
         List<Medium> mediaList = post.getMedia() != null ? post.getMedia() : new ArrayList<>();
-        boolean removed = mediaList.removeIf(medium -> medium.getId().equals(mediumId));
         
+        // Find the medium to get file info before deletion
+        Medium deletedMedium = mediaList.stream()
+                .filter(medium -> medium.getId().equals(mediumId))
+                .findFirst()
+                .orElse(null);
+        
+        // Remove medium from list
+        boolean removed = mediaList.removeIf(medium -> medium.getId().equals(mediumId));
+
         if (!removed) {
             throw new DeletionFailedException(mediumId, "medium", "Medium not found in post");
         }
-        
+
         post.setMedia(mediaList);
         postRepository.save(post);
         
-        log.info("Medium {} deleted from post {} by user {}", mediumId, postId, userId);
-        
-        return mediaList;
+        // Delete actual media file from cloud storage
+        if (deletedMedium != null) {
+            try {
+                // Extract auto increment ID from medium ID or URL
+                String filename = extractFilenameFromMedium(deletedMedium);
+                Integer autoIncrementId = extractAutoIncrementIdFromMedium(deletedMedium);
+                
+                if (filename != null && autoIncrementId != null) {
+                    boolean deleted = mediaOssService.deleteMediaFile(postId, autoIncrementId, filename);
+                    if (deleted) {
+                        log.info("Successfully deleted media file from cloud storage for medium {}", mediumId);
+                    } else {
+                        log.warn("Failed to delete media file from cloud storage for medium {}", mediumId);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error deleting media file from cloud storage for medium {}: {}", mediumId, e.getMessage(), e);
+            }
+        }
+
+        log.info("Medium {} deleted from post {} by user {}", mediumId, postId, userId);        return mediaList;
     }
 
     @Override
@@ -251,5 +280,129 @@ public class PostMediumServiceImpl implements PostMediumService {
 
     private String generateMediumId() {
         return UUID.randomUUID().toString();
+    }
+
+    /**
+     * 获取帖子媒体文件的下一个自增ID
+     * 
+     * @param post 帖子对象
+     * @return 下一个自增ID
+     */
+    private int getNextAutoIncrementId(Post post) {
+        List<Medium> currentMedia = post.getMedia();
+        if (currentMedia == null || currentMedia.isEmpty()) {
+            return 1;
+        }
+        
+        // 找到当前最大的自增ID
+        int maxId = 0;
+        for (Medium medium : currentMedia) {
+            String mediumId = medium.getId();
+            // 尝试解析ID中的数字部分
+            try {
+                // 假设ID格式为 postId_autoIncrementId 或直接是数字
+                String[] parts = mediumId.split("_");
+                if (parts.length >= 2) {
+                    int currentId = Integer.parseInt(parts[parts.length - 1]);
+                    maxId = Math.max(maxId, currentId);
+                } else {
+                    // 如果是纯数字ID
+                    int currentId = Integer.parseInt(mediumId);
+                    maxId = Math.max(maxId, currentId);
+                }
+            } catch (NumberFormatException e) {
+                // 如果解析失败，继续处理下一个
+                log.debug("Cannot parse medium ID as integer: {}", mediumId);
+            }
+        }
+        
+        return maxId + 1;
+    }
+    
+    /**
+     * Extract filename from medium object based on its resource URL or ID
+     */
+    private String extractFilenameFromMedium(Medium medium) {
+        try {
+            // Try to extract filename from resourceUrl
+            if (medium.getResourceUrl() != null) {
+                String url = medium.getResourceUrl();
+                // Extract filename from URL (after last slash)
+                int lastSlash = url.lastIndexOf('/');
+                if (lastSlash != -1 && lastSlash < url.length() - 1) {
+                    String filename = url.substring(lastSlash + 1);
+                    // Remove URL parameters if any
+                    int paramIndex = filename.indexOf('?');
+                    if (paramIndex != -1) {
+                        filename = filename.substring(0, paramIndex);
+                    }
+                    return filename;
+                }
+            }
+            
+            // Fallback: use medium ID as filename if it contains extension
+            if (medium.getId() != null && medium.getId().contains(".")) {
+                return medium.getId();
+            }
+            
+            return null;
+        } catch (Exception e) {
+            log.error("Error extracting filename from medium: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+    
+    /**
+     * Extract auto increment ID from medium object
+     */
+    private Integer extractAutoIncrementIdFromMedium(Medium medium) {
+        try {
+            // Try to extract auto increment ID from filename or ID
+            String identifier = null;
+            
+            if (medium.getResourceUrl() != null) {
+                String url = medium.getResourceUrl();
+                int lastSlash = url.lastIndexOf('/');
+                if (lastSlash != -1 && lastSlash < url.length() - 1) {
+                    identifier = url.substring(lastSlash + 1);
+                    int paramIndex = identifier.indexOf('?');
+                    if (paramIndex != -1) {
+                        identifier = identifier.substring(0, paramIndex);
+                    }
+                }
+            }
+            
+            if (identifier == null) {
+                identifier = medium.getId();
+            }
+            
+            if (identifier != null) {
+                // Extract number before underscore (format: autoIncrementId_originalFilename)
+                int underscoreIndex = identifier.indexOf('_');
+                if (underscoreIndex > 0) {
+                    String idPart = identifier.substring(0, underscoreIndex);
+                    return Integer.valueOf(idPart);
+                }
+                
+                // Try to extract number from start of identifier
+                StringBuilder numberPart = new StringBuilder();
+                for (char c : identifier.toCharArray()) {
+                    if (Character.isDigit(c)) {
+                        numberPart.append(c);
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (numberPart.length() > 0) {
+                    return Integer.valueOf(numberPart.toString());
+                }
+            }
+            
+            return null;
+        } catch (Exception e) {
+            log.error("Error extracting auto increment ID from medium: {}", e.getMessage(), e);
+            return null;
+        }
     }
 }

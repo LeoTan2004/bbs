@@ -17,7 +17,9 @@ import edu.xtu.bbs.post.model.PublicMatric;
 import edu.xtu.bbs.post.repo.PostCommentRepository;
 import edu.xtu.bbs.post.repo.PostRepository;
 import edu.xtu.bbs.post.repo.PublicMatricRepository;
+import edu.xtu.bbs.post.service.CommentLikeService;
 import edu.xtu.bbs.post.service.PostCommentService;
+import edu.xtu.bbs.user.exception.UserNotFoundException;
 import edu.xtu.bbs.user.model.User;
 import edu.xtu.bbs.user.repo.UserRepository;
 import jakarta.validation.constraints.NotNull;
@@ -45,6 +47,7 @@ public class PostCommentServiceImpl implements PostCommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PublicMatricRepository publicMatricRepository;
+    private final CommentLikeService commentLikeService;
 
     // region Comment CRUD Operations
 
@@ -316,11 +319,10 @@ public class PostCommentServiceImpl implements PostCommentService {
     // region Private Helper Methods
 
     private CommentResponse convertToCommentResponse(@NotNull PostComment comment, Integer currentUserId) {
-        // Check if current user has liked this comment (placeholder for now)
+        // Check if current user has liked this comment
         Boolean isLiked = false;
         if (currentUserId != null) {
-            // TODO: Implement comment like functionality
-            // isLiked = commentLikeService.hasLikedComment(currentUserId, comment.getId());
+            isLiked = commentLikeService.hasLikedComment(currentUserId, comment.getId());
         }
         
         return new CommentResponse(
@@ -586,6 +588,80 @@ public class PostCommentServiceImpl implements PostCommentService {
     
     private void updateParentCommentReplyCount(@NotNull Integer parentCommentId) {
         updateCommentCount(parentCommentId);
+    }
+
+    // endregion
+
+    // region Comment Interaction Operations
+
+    @Override
+    public Boolean toggleCommentLike(@NotNull Integer userId, @NotNull Integer commentId)
+            throws CommentNotFoundException, UserNotFoundException {
+        
+        log.debug("User {} toggling like for comment {}", userId, commentId);
+        
+        // Verify comment exists
+        if (!commentRepository.existsById(commentId)) {
+            throw new CommentNotFoundException(commentId);
+        }
+        
+        try {
+            return commentLikeService.toggleCommentLike(userId, commentId);
+        } catch (Exception e) {
+            log.error("Error toggling comment like for user {} and comment {}: {}", 
+                     userId, commentId, e.getMessage(), e);
+            throw new RuntimeException("Failed to toggle comment like", e);
+        }
+    }
+
+    @Override
+    public void likeComment(@NotNull Integer userId, @NotNull Integer commentId)
+            throws CommentNotFoundException, UserNotFoundException, IllegalStateException {
+        
+        log.debug("User {} liking comment {}", userId, commentId);
+        
+        // Verify comment exists
+        if (!commentRepository.existsById(commentId)) {
+            throw new CommentNotFoundException(commentId);
+        }
+        
+        try {
+            commentLikeService.likeComment(userId, commentId);
+        } catch (Exception e) {
+            log.error("Error liking comment for user {} and comment {}: {}", 
+                     userId, commentId, e.getMessage(), e);
+            throw new RuntimeException("Failed to like comment", e);
+        }
+    }
+
+    @Override
+    public void unlikeComment(@NotNull Integer userId, @NotNull Integer commentId)
+            throws CommentNotFoundException, UserNotFoundException, IllegalStateException {
+        
+        log.debug("User {} unliking comment {}", userId, commentId);
+        
+        // Verify comment exists
+        if (!commentRepository.existsById(commentId)) {
+            throw new CommentNotFoundException(commentId);
+        }
+        
+        try {
+            commentLikeService.unlikeComment(userId, commentId);
+        } catch (Exception e) {
+            log.error("Error unliking comment for user {} and comment {}: {}", 
+                     userId, commentId, e.getMessage(), e);
+            throw new RuntimeException("Failed to unlike comment", e);
+        }
+    }
+
+    @Override
+    public Boolean hasLikedComment(@NotNull Integer userId, @NotNull Integer commentId) {
+        return commentLikeService.hasLikedComment(userId, commentId);
+    }
+
+    @Override
+    public Long getCommentLikeCount(@NotNull Integer commentId) {
+        return commentLikeService.getCommentLikeCount(commentId);
     }
 
     // endregion

@@ -13,6 +13,7 @@ import edu.xtu.bbs.post.model.PostStatus;
 import edu.xtu.bbs.post.repo.PostCommentRepository;
 import edu.xtu.bbs.post.repo.PostRepository;
 import edu.xtu.bbs.post.repo.PublicMatricRepository;
+import edu.xtu.bbs.post.service.CommentLikeService;
 import edu.xtu.bbs.post.service.impl.PostCommentServiceImpl;
 import edu.xtu.bbs.user.model.User;
 import edu.xtu.bbs.user.repo.UserRepository;
@@ -50,6 +51,9 @@ class PostCommentServiceTest {
     @Mock
     private PublicMatricRepository publicMatricRepository;
 
+    @Mock
+    private CommentLikeService commentLikeService;
+
     private PostCommentService commentService;
 
     private User testUser;
@@ -58,7 +62,7 @@ class PostCommentServiceTest {
 
     @BeforeEach
     void setUp() {
-        commentService = new PostCommentServiceImpl(commentRepository, postRepository, userRepository, publicMatricRepository);
+        commentService = new PostCommentServiceImpl(commentRepository, postRepository, userRepository, publicMatricRepository, commentLikeService);
 
         // Setup test data
         testUser = new User();

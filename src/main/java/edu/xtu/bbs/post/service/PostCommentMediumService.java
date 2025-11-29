@@ -65,28 +65,4 @@ public interface PostCommentMediumService {
     List<Medium> deleteMediumFromComment(@NotNull Integer userId, @NotNull Integer commentId, @NotNull String mediumId)
             throws CommentNotFoundException, ModifyNotPermittedException, DeletionFailedException;
 
-    /**
-     * Update medium metadata for a comment
-     *
-     * @param userId the user id
-     * @param commentId the comment id
-     * @param mediumId the medium id
-     * @param newType the new medium type
-     * @return the updated medium
-     * @throws CommentNotFoundException when the comment is not found
-     * @throws ModifyNotPermittedException when the user doesn't have permission to modify this comment
-     * @throws UnsupportedMediumTypeException when the medium type is not supported
-     */
-    Medium updateMediumMetadata(@NotNull Integer userId, @NotNull Integer commentId, @NotNull String mediumId, @NotNull String newType)
-            throws CommentNotFoundException, ModifyNotPermittedException, UnsupportedMediumTypeException;
-
-    /**
-     * Check if user has permission to access the comment medium
-     *
-     * @param userId the user id
-     * @param mediumId the medium id
-     * @return true if user has access permission
-     */
-    Boolean hasAccessPermission(@NotNull Integer userId, @NotNull String mediumId);
-
 }

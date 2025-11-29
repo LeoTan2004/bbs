@@ -5,7 +5,9 @@ import edu.xtu.bbs.post.dto.CommentMediumUploadRequest;
 import edu.xtu.bbs.post.dto.MediumUploadResult;
 import edu.xtu.bbs.post.exception.*;
 import edu.xtu.bbs.post.model.Medium;
+import edu.xtu.bbs.post.model.Post;
 import edu.xtu.bbs.post.model.PostComment;
+import edu.xtu.bbs.post.model.PostStatus;
 import edu.xtu.bbs.post.repo.PostCommentRepository;
 import edu.xtu.bbs.post.service.CommentMediaOssService;
 import edu.xtu.bbs.post.service.PostCommentMediumService;
@@ -69,16 +71,19 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
         // Validate upload request
         validateUploadRequest(uploadRequest, comment);
         
-        // Generate upload URL using CommentMediaOssService
-        String uploadUrl = commentMediaOssService.generateCommentMediaUploadUrl(userId, uploadRequest.type(), uploadRequest.size());
+        // Generate auto-increment ID for this comment's media
+        int autoIncrementId = getNextAutoIncrementId(comment);
         
-        // Generate unique filename and access URL
-        String filename = commentMediaOssService.generateUniqueFilename(uploadRequest.type());
-        String accessUrl = commentMediaOssService.generateCommentMediaAccessUrl(userId, filename);
+        // Generate upload URL using CommentMediaOssService with commentId and autoIncrementId
+        String uploadUrl = commentMediaOssService.generateCommentMediaUploadUrl(commentId, autoIncrementId, uploadRequest.type(), uploadRequest.size());
+        
+        // Generate unique filename and access URL using commentId and autoIncrementId
+        String filename = commentMediaOssService.generateUniqueFilename(autoIncrementId, uploadRequest.type());
+        String accessUrl = commentMediaOssService.generateCommentMediaAccessUrl(commentId, autoIncrementId, filename);
         
         // Create medium record
         Medium medium = new Medium();
-        medium.setId(generateMediumId());
+        medium.setId(commentId + "_" + autoIncrementId); // Use commentId_autoIncrementId format
         medium.setType(uploadRequest.type());
         medium.setDisplayUrl(accessUrl);
         medium.setResourceUrl(accessUrl);
@@ -117,6 +122,12 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
             return Collections.emptyList();
         }
         
+        // Find the medium to get file info before deletion
+        Medium deletedMedium = currentMedia.stream()
+                .filter(medium -> Objects.equals(medium.getId(), mediumId))
+                .findFirst()
+                .orElse(null);
+        
         // Remove the specified medium
         List<Medium> updatedMedia = currentMedia.stream()
                 .filter(medium -> !Objects.equals(medium.getId(), mediumId))
@@ -126,15 +137,31 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
         comment.setMedia(updatedMedia);
         commentRepository.save(comment);
         
-        // TODO: Delete actual media file from storage
-        // mediaOssService.deleteMedia(mediumId);
+        // Delete actual media file from cloud storage
+        if (deletedMedium != null) {
+            try {
+                // Extract auto increment ID from medium ID or URL
+                String filename = extractFilenameFromMedium(deletedMedium);
+                Integer autoIncrementId = extractAutoIncrementIdFromMedium(deletedMedium);
+                
+                if (filename != null && autoIncrementId != null) {
+                    boolean deleted = commentMediaOssService.deleteCommentMediaFile(commentId, autoIncrementId, filename);
+                    if (deleted) {
+                        log.info("Successfully deleted media file from cloud storage for medium {}", mediumId);
+                    } else {
+                        log.warn("Failed to delete media file from cloud storage for medium {}", mediumId);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error deleting media file from cloud storage for medium {}: {}", mediumId, e.getMessage(), e);
+            }
+        }
         
         log.info("Deleted medium {} from comment {}", mediumId, commentId);
         
         return updatedMedia;
     }
 
-    @Override
     @Transactional
     public Medium updateMediumMetadata(@NotNull Integer userId, @NotNull Integer commentId, @NotNull String mediumId, @NotNull String newType)
             throws CommentNotFoundException, ModifyNotPermittedException, UnsupportedMediumTypeException {
@@ -183,13 +210,134 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
         return updatedMedium;
     }
 
-    @Override
     public Boolean hasAccessPermission(@NotNull Integer userId, @NotNull String mediumId) {
         log.debug("Checking access permission for user {} on medium {}", userId, mediumId);
         
-        // TODO: Implement actual permission check logic
-        // For now, assume all comment media is publicly accessible
-        return true;
+        try {
+            // Find the comment that contains this medium
+            List<PostComment> comments = commentRepository.findAll();
+            PostComment owningComment = null;
+            
+            for (PostComment comment : comments) {
+                if (comment.getMedia() != null) {
+                    boolean hasMedium = comment.getMedia().stream()
+                            .anyMatch(medium -> Objects.equals(medium.getId(), mediumId));
+                    if (hasMedium) {
+                        owningComment = comment;
+                        break;
+                    }
+                }
+            }
+            
+            if (owningComment == null) {
+                log.debug("Medium {} not found in any comment", mediumId);
+                return false;
+            }
+            
+            // Check if comment and its post are accessible to user
+            // Check post accessibility (assuming public access for published posts)
+            Post post = owningComment.getPost();
+            if (post.getStatus() == PostStatus.PUBLISHED) {
+                return true;  // Published post comments are publicly accessible
+            } else if (post.getStatus() == PostStatus.DRAFT) {
+                // Draft posts are only accessible to the author
+                return Objects.equals(post.getAuthor().getId(), userId);
+            }
+            
+            // For other statuses, deny access
+            return false;
+            
+        } catch (Exception e) {
+            log.error("Error checking access permission for medium {}: {}", mediumId, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Extract filename from medium object based on its resource URL or ID
+     */
+    private String extractFilenameFromMedium(Medium medium) {
+        try {
+            // Try to extract filename from resourceUrl
+            if (medium.getResourceUrl() != null) {
+                String url = medium.getResourceUrl();
+                // Extract filename from URL (after last slash)
+                int lastSlash = url.lastIndexOf('/');
+                if (lastSlash != -1 && lastSlash < url.length() - 1) {
+                    String filename = url.substring(lastSlash + 1);
+                    // Remove URL parameters if any
+                    int paramIndex = filename.indexOf('?');
+                    if (paramIndex != -1) {
+                        filename = filename.substring(0, paramIndex);
+                    }
+                    return filename;
+                }
+            }
+            
+            // Fallback: use medium ID as filename if it contains extension
+            if (medium.getId() != null && medium.getId().contains(".")) {
+                return medium.getId();
+            }
+            
+            return null;
+        } catch (Exception e) {
+            log.error("Error extracting filename from medium: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+    
+    /**
+     * Extract auto increment ID from medium object
+     */
+    private Integer extractAutoIncrementIdFromMedium(Medium medium) {
+        try {
+            // Try to extract auto increment ID from filename or ID
+            String identifier = null;
+            
+            if (medium.getResourceUrl() != null) {
+                String url = medium.getResourceUrl();
+                int lastSlash = url.lastIndexOf('/');
+                if (lastSlash != -1 && lastSlash < url.length() - 1) {
+                    identifier = url.substring(lastSlash + 1);
+                    int paramIndex = identifier.indexOf('?');
+                    if (paramIndex != -1) {
+                        identifier = identifier.substring(0, paramIndex);
+                    }
+                }
+            }
+            
+            if (identifier == null) {
+                identifier = medium.getId();
+            }
+            
+            if (identifier != null) {
+                // Extract number before underscore (format: autoIncrementId_originalFilename)
+                int underscoreIndex = identifier.indexOf('_');
+                if (underscoreIndex > 0) {
+                    String idPart = identifier.substring(0, underscoreIndex);
+                    return Integer.valueOf(idPart);
+                }
+                
+                // Try to extract number from start of identifier
+                StringBuilder numberPart = new StringBuilder();
+                for (char c : identifier.toCharArray()) {
+                    if (Character.isDigit(c)) {
+                        numberPart.append(c);
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (numberPart.length() > 0) {
+                    return Integer.valueOf(numberPart.toString());
+                }
+            }
+            
+            return null;
+        } catch (Exception e) {
+            log.error("Error extracting auto increment ID from medium: {}", e.getMessage(), e);
+            return null;
+        }
     }
 
     private void validateUploadRequest(CommentMediumUploadRequest request, PostComment comment)
@@ -197,7 +345,7 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
         
         // Check file type
         if (!commentMediaConfiguration.isTypeAllowed(request.type())) {
-            throw new UnsupportedMediumTypeException("comment_media", request.type(), 
+            throw new UnsupportedMediumTypeException("comment_media_file", request.type(),
                     commentMediaConfiguration.getAllowTypes().toArray(new String[0]));
         }
         
@@ -219,4 +367,40 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
         return UUID.randomUUID().toString();
     }
 
+    /**
+     * Get the next auto-increment ID for comment media files
+     *
+     * @param comment comment object
+     * @return next auto-increment ID
+     */
+    private int getNextAutoIncrementId(PostComment comment) {
+        List<Medium> currentMedia = comment.getMedia();
+        if (currentMedia == null || currentMedia.isEmpty()) {
+            return 1;
+        }
+        
+        // Find the current maximum auto-increment ID
+        int maxId = 0;
+        for (Medium medium : currentMedia) {
+            String mediumId = medium.getId();
+            // Try to parse the numeric part from the ID
+            try {
+                // Assume ID format is commentId_autoIncrementId or direct number
+                String[] parts = mediumId.split("_");
+                if (parts.length >= 2) {
+                    int currentId = Integer.parseInt(parts[parts.length - 1]);
+                    maxId = Math.max(maxId, currentId);
+                } else {
+                    // If it's a pure numeric ID
+                    int currentId = Integer.parseInt(mediumId);
+                    maxId = Math.max(maxId, currentId);
+                }
+            } catch (NumberFormatException e) {
+                // If parsing fails, continue with next one
+                log.debug("Cannot parse medium ID as integer: {}", mediumId);
+            }
+        }
+        
+        return maxId + 1;
+    }
 }

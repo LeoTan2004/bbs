@@ -9,6 +9,7 @@ import edu.xtu.bbs.post.exception.CommentPermissionDeniedException;
 import edu.xtu.bbs.post.exception.CommentStatusNotAllowedException;
 import edu.xtu.bbs.post.exception.PostNotFoundException;
 import edu.xtu.bbs.post.exception.PostStatusNotAllowedException;
+import edu.xtu.bbs.user.exception.UserNotFoundException;
 import edu.xtu.bbs.post.model.PostComment;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
@@ -250,6 +251,60 @@ public interface PostCommentService {
      * @return true if user has a draft
      */
     Boolean hasDraft(@NotNull Integer userId);
+
+    // endregion
+
+    // region Comment Interaction Operations
+
+    /**
+     * Toggle comment like (like if not liked, unlike if liked)
+     *
+     * @param userId the user id
+     * @param commentId the comment id
+     * @return true if comment is now liked, false if now unliked
+     * @throws CommentNotFoundException when the comment is not found
+     */
+    Boolean toggleCommentLike(@NotNull Integer userId, @NotNull Integer commentId)
+            throws CommentNotFoundException, UserNotFoundException;
+
+    /**
+     * Like a comment
+     *
+     * @param userId the user id
+     * @param commentId the comment id
+     * @throws CommentNotFoundException when the comment is not found
+     * @throws IllegalStateException when user has already liked the comment
+     */
+    void likeComment(@NotNull Integer userId, @NotNull Integer commentId)
+            throws CommentNotFoundException, UserNotFoundException, IllegalStateException;
+
+    /**
+     * Unlike a comment
+     *
+     * @param userId the user id
+     * @param commentId the comment id
+     * @throws CommentNotFoundException when the comment is not found
+     * @throws IllegalStateException when user has not liked the comment
+     */
+    void unlikeComment(@NotNull Integer userId, @NotNull Integer commentId)
+            throws CommentNotFoundException, UserNotFoundException, IllegalStateException;
+
+    /**
+     * Check if user has liked a comment
+     *
+     * @param userId the user id
+     * @param commentId the comment id
+     * @return true if user has liked the comment
+     */
+    Boolean hasLikedComment(@NotNull Integer userId, @NotNull Integer commentId);
+
+    /**
+     * Get comment like count
+     *
+     * @param commentId the comment id
+     * @return the number of likes for the comment
+     */
+    Long getCommentLikeCount(@NotNull Integer commentId);
 
     // endregion
 

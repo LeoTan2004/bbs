@@ -33,14 +33,16 @@ public class MediaOssService {
     /**
      * Generate unique key for media file in cloud storage
      * 
-     * @param userId User ID
+     * @param postId Post ID
+     * @param autoIncrementId Auto increment ID for this post's media
      * @param filename File name
      * @return Storage key
      */
-    private String generateMediaKey(Integer userId, String filename) {
-        return "%s/user_%d/%s".formatted(
+    private String generateMediaKey(Integer postId, Integer autoIncrementId, String filename) {
+        return "%s/%d/%d_%s".formatted(
                 mediaConfiguration.getPrefix(), 
-                userId, 
+                postId, 
+                autoIncrementId,
                 filename
         );
     }
@@ -48,12 +50,13 @@ public class MediaOssService {
     /**
      * Generate access URL for media file
      * 
-     * @param userId User ID
+     * @param postId Post ID
+     * @param autoIncrementId Auto increment ID for this post's media
      * @param filename File name
      * @return Access URL
      */
-    public String generateMediaAccessUrl(Integer userId, String filename) {
-        final String objectKey = generateMediaKey(userId, filename);
+    public String generateMediaAccessUrl(Integer postId, Integer autoIncrementId, String filename) {
+        final String objectKey = generateMediaKey(postId, autoIncrementId, filename);
         return cosClient.getObjectUrl(mediaConfiguration.getBucket(), objectKey).toString();
     }
 
@@ -87,12 +90,13 @@ public class MediaOssService {
     /**
      * Generate unique filename for media file
      * 
+     * @param autoIncrementId Auto increment ID
      * @param contentType File MIME type
      * @return Unique filename
      */
-    public String generateUniqueFilename(String contentType) {
+    public String generateUniqueFilename(Integer autoIncrementId, String contentType) {
         String extension = getFileExtension(contentType);
-        return UUID.randomUUID() + extension;
+        return autoIncrementId + extension;
     }
 
     /**
@@ -126,21 +130,22 @@ public class MediaOssService {
     /**
      * Generate upload URL for media file
      * 
-     * @param userId User ID
+     * @param postId Post ID
+     * @param autoIncrementId Auto increment ID for this post's media
      * @param contentType File MIME type
      * @param dataSize File size
      * @return Upload URL
      * @throws UnsupportedMediumTypeException Unsupported file type
      * @throws MediumSizeExceededException File size exceeds limit
      */
-    public String generateMediaUploadUrl(Integer userId, String contentType, DataSize dataSize) 
+    public String generateMediaUploadUrl(Integer postId, Integer autoIncrementId, String contentType, DataSize dataSize) 
             throws UnsupportedMediumTypeException, MediumSizeExceededException {
         
         checkAllowType(contentType);
         checkDataSize(dataSize);
         
-        final String filename = generateUniqueFilename(contentType);
-        final String objectKey = generateMediaKey(userId, filename);
+        final String filename = generateUniqueFilename(autoIncrementId, contentType);
+        final String objectKey = generateMediaKey(postId, autoIncrementId, filename);
         final Instant expiredAt = Instant.now().plus(mediaConfiguration.getExpiredAfter());
         final Date expireDate = Date.from(expiredAt);
         final Map<String, String> headers = Map.of(
@@ -152,8 +157,8 @@ public class MediaOssService {
         final URL url = cosClient.generatePresignedUrl(bucket, objectKey, expireDate, 
                 HttpMethodName.PUT, headers, Map.of());
         
-        log.info("Generated upload URL for user {} with content type {} and size {}", 
-                userId, contentType, dataSize);
+        log.info("Generated upload URL for post media - post {} with content type {} and size {}", 
+                postId, contentType, dataSize);
         
         return url.toString();
     }
@@ -161,33 +166,35 @@ public class MediaOssService {
     /**
      * Generate upload URL for media file (overloaded method)
      * 
-     * @param userId User ID
+     * @param postId Post ID
+     * @param autoIncrementId Auto increment ID for this post's media
      * @param contentType File MIME type
      * @param sizeInBytes File size in bytes
      * @return Upload URL
      * @throws UnsupportedMediumTypeException Unsupported file type
      * @throws MediumSizeExceededException File size exceeds limit
      */
-    public String generateMediaUploadUrl(Integer userId, String contentType, long sizeInBytes) 
+    public String generateMediaUploadUrl(Integer postId, Integer autoIncrementId, String contentType, long sizeInBytes) 
             throws UnsupportedMediumTypeException, MediumSizeExceededException {
-        return generateMediaUploadUrl(userId, contentType, DataSize.ofBytes(sizeInBytes));
+        return generateMediaUploadUrl(postId, autoIncrementId, contentType, DataSize.ofBytes(sizeInBytes));
     }
 
     /**
      * Delete media file from cloud storage
      * 
-     * @param userId User ID
+     * @param postId Post ID
+     * @param autoIncrementId Auto increment ID for this post's media
      * @param filename File name
      * @return Whether deletion was successful
      */
-    public boolean deleteMediaFile(Integer userId, String filename) {
+    public boolean deleteMediaFile(Integer postId, Integer autoIncrementId, String filename) {
         try {
-            final String objectKey = generateMediaKey(userId, filename);
+            final String objectKey = generateMediaKey(postId, autoIncrementId, filename);
             cosClient.deleteObject(mediaConfiguration.getBucket(), objectKey);
-            log.info("Successfully deleted media file for user {}: {}", userId, filename);
+            log.info("Successfully deleted media file for post {}: {}", postId, filename);
             return true;
         } catch (Exception e) {
-            log.error("Failed to delete media file for user {}: {}", userId, filename, e);
+            log.error("Failed to delete media file for post {}: {}", postId, filename, e);
             return false;
         }
     }
@@ -195,16 +202,17 @@ public class MediaOssService {
     /**
      * Check if media file exists in cloud storage
      * 
-     * @param userId User ID
+     * @param postId Post ID
+     * @param autoIncrementId Auto increment ID for this post's media
      * @param filename File name
      * @return Whether file exists
      */
-    public boolean mediaFileExists(Integer userId, String filename) {
+    public boolean mediaFileExists(Integer postId, Integer autoIncrementId, String filename) {
         try {
-            final String objectKey = generateMediaKey(userId, filename);
+            final String objectKey = generateMediaKey(postId, autoIncrementId, filename);
             return cosClient.doesObjectExist(mediaConfiguration.getBucket(), objectKey);
         } catch (Exception e) {
-            log.error("Failed to check media file existence for user {}: {}", userId, filename, e);
+            log.error("Failed to check media file existence for post {}: {}", postId, filename, e);
             return false;
         }
     }

@@ -33,14 +33,16 @@ public class CommentMediaOssService {
     /**
      * Generate unique key for comment media file in cloud storage
      * 
-     * @param userId User ID
+     * @param commentId Comment ID
+     * @param autoIncrementId Auto increment ID for this comment's media
      * @param filename File name
      * @return Storage key
      */
-    private String generateCommentMediaKey(Integer userId, String filename) {
-        return "%s/user_%d/%s".formatted(
+    private String generateCommentMediaKey(Integer commentId, Integer autoIncrementId, String filename) {
+        return "%s/%d/%d_%s".formatted(
                 commentMediaConfiguration.getPrefix(), 
-                userId, 
+                commentId, 
+                autoIncrementId,
                 filename
         );
     }
@@ -48,12 +50,13 @@ public class CommentMediaOssService {
     /**
      * Generate access URL for comment media file
      * 
-     * @param userId User ID
+     * @param commentId Comment ID
+     * @param autoIncrementId Auto increment ID for this comment's media
      * @param filename File name
      * @return Access URL
      */
-    public String generateCommentMediaAccessUrl(Integer userId, String filename) {
-        final String objectKey = generateCommentMediaKey(userId, filename);
+    public String generateCommentMediaAccessUrl(Integer commentId, Integer autoIncrementId, String filename) {
+        final String objectKey = generateCommentMediaKey(commentId, autoIncrementId, filename);
         return cosClient.getObjectUrl(commentMediaConfiguration.getBucket(), objectKey).toString();
     }
 
@@ -87,12 +90,13 @@ public class CommentMediaOssService {
     /**
      * Generate unique filename for comment media file
      * 
+     * @param autoIncrementId Auto increment ID
      * @param contentType File MIME type
      * @return Unique filename
      */
-    public String generateUniqueFilename(String contentType) {
+    public String generateUniqueFilename(Integer autoIncrementId, String contentType) {
         String extension = getFileExtension(contentType);
-        return UUID.randomUUID() + extension;
+        return autoIncrementId + extension;
     }
 
     /**
@@ -120,21 +124,22 @@ public class CommentMediaOssService {
     /**
      * Generate upload URL for comment media file
      * 
-     * @param userId User ID
+     * @param commentId Comment ID
+     * @param autoIncrementId Auto increment ID for this comment's media
      * @param contentType File MIME type
      * @param dataSize File size
      * @return Upload URL
      * @throws UnsupportedMediumTypeException Unsupported file type
      * @throws MediumSizeExceededException File size exceeds limit
      */
-    public String generateCommentMediaUploadUrl(Integer userId, String contentType, DataSize dataSize) 
+    public String generateCommentMediaUploadUrl(Integer commentId, Integer autoIncrementId, String contentType, DataSize dataSize) 
             throws UnsupportedMediumTypeException, MediumSizeExceededException {
         
         checkAllowType(contentType);
         checkDataSize(dataSize);
         
-        final String filename = generateUniqueFilename(contentType);
-        final String objectKey = generateCommentMediaKey(userId, filename);
+        final String filename = generateUniqueFilename(autoIncrementId, contentType);
+        final String objectKey = generateCommentMediaKey(commentId, autoIncrementId, filename);
         final Instant expiredAt = Instant.now().plus(commentMediaConfiguration.getExpiredAfter());
         final Date expireDate = Date.from(expiredAt);
         final Map<String, String> headers = Map.of(
@@ -146,8 +151,8 @@ public class CommentMediaOssService {
         final URL url = cosClient.generatePresignedUrl(bucket, objectKey, expireDate, 
                 HttpMethodName.PUT, headers, Map.of());
         
-        log.info("Generated upload URL for comment media - user {} with content type {} and size {}", 
-                userId, contentType, dataSize);
+        log.info("Generated upload URL for comment media - comment {} with content type {} and size {}", 
+                commentId, contentType, dataSize);
         
         return url.toString();
     }
@@ -155,33 +160,35 @@ public class CommentMediaOssService {
     /**
      * Generate upload URL for comment media file (overloaded method)
      * 
-     * @param userId User ID
+     * @param commentId Comment ID
+     * @param autoIncrementId Auto increment ID for this comment's media
      * @param contentType File MIME type
      * @param sizeInBytes File size in bytes
      * @return Upload URL
      * @throws UnsupportedMediumTypeException Unsupported file type
      * @throws MediumSizeExceededException File size exceeds limit
      */
-    public String generateCommentMediaUploadUrl(Integer userId, String contentType, long sizeInBytes) 
+    public String generateCommentMediaUploadUrl(Integer commentId, Integer autoIncrementId, String contentType, long sizeInBytes) 
             throws UnsupportedMediumTypeException, MediumSizeExceededException {
-        return generateCommentMediaUploadUrl(userId, contentType, DataSize.ofBytes(sizeInBytes));
+        return generateCommentMediaUploadUrl(commentId, autoIncrementId, contentType, DataSize.ofBytes(sizeInBytes));
     }
 
     /**
      * Delete comment media file from cloud storage
      * 
-     * @param userId User ID
+     * @param commentId Comment ID
+     * @param autoIncrementId Auto increment ID for this comment's media
      * @param filename File name
      * @return Whether deletion was successful
      */
-    public boolean deleteCommentMediaFile(Integer userId, String filename) {
+    public boolean deleteCommentMediaFile(Integer commentId, Integer autoIncrementId, String filename) {
         try {
-            final String objectKey = generateCommentMediaKey(userId, filename);
+            final String objectKey = generateCommentMediaKey(commentId, autoIncrementId, filename);
             cosClient.deleteObject(commentMediaConfiguration.getBucket(), objectKey);
-            log.info("Successfully deleted comment media file for user {}: {}", userId, filename);
+            log.info("Successfully deleted comment media file for comment {}: {}", commentId, filename);
             return true;
         } catch (Exception e) {
-            log.error("Failed to delete comment media file for user {}: {}", userId, filename, e);
+            log.error("Failed to delete comment media file for comment {}: {}", commentId, filename, e);
             return false;
         }
     }
@@ -189,16 +196,17 @@ public class CommentMediaOssService {
     /**
      * Check if comment media file exists in cloud storage
      * 
-     * @param userId User ID
+     * @param commentId Comment ID
+     * @param autoIncrementId Auto increment ID for this comment's media
      * @param filename File name
      * @return Whether file exists
      */
-    public boolean commentMediaFileExists(Integer userId, String filename) {
+    public boolean commentMediaFileExists(Integer commentId, Integer autoIncrementId, String filename) {
         try {
-            final String objectKey = generateCommentMediaKey(userId, filename);
+            final String objectKey = generateCommentMediaKey(commentId, autoIncrementId, filename);
             return cosClient.doesObjectExist(commentMediaConfiguration.getBucket(), objectKey);
         } catch (Exception e) {
-            log.error("Failed to check comment media file existence for user {}: {}", userId, filename, e);
+            log.error("Failed to check comment media file existence for comment {}: {}", commentId, filename, e);
             return false;
         }
     }
