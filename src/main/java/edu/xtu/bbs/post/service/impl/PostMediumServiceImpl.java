@@ -1,7 +1,6 @@
 package edu.xtu.bbs.post.service.impl;
 
 import edu.xtu.bbs.post.config.MediaConfiguration;
-import edu.xtu.bbs.post.config.MediaServiceConfiguration;
 import edu.xtu.bbs.post.dto.MediumUploadResult;
 import edu.xtu.bbs.post.dto.PostMediumUploadRequest;
 import edu.xtu.bbs.post.exception.*;
@@ -28,7 +27,6 @@ public class PostMediumServiceImpl implements PostMediumService {
 
     private final PostRepository postRepository;
     private final MediaConfiguration mediaConfiguration;
-    private final MediaServiceConfiguration mediaServiceConfiguration;
     private final MediaOssService mediaOssService;
 
     @Override
@@ -171,7 +169,7 @@ public class PostMediumServiceImpl implements PostMediumService {
         }
         
         // Validate new type
-        if (!mediaConfiguration.getAllowTypes().contains(newType)) {
+        if (!mediaConfiguration.isTypeAllowed(newType)) {
             throw new UnsupportedMediumTypeException("medium", newType, 
                     mediaConfiguration.getAllowTypes().toArray(new String[0]));
         }
@@ -232,22 +230,22 @@ public class PostMediumServiceImpl implements PostMediumService {
             throws UnsupportedMediumTypeException, MediumSizeExceededException, TooManyMediaException {
         
         // Check file type
-        if (!mediaConfiguration.getAllowTypes().contains(request.type())) {
+        if (!mediaConfiguration.isTypeAllowed(request.type())) {
             throw new UnsupportedMediumTypeException("uploaded_file", request.type(), 
                     mediaConfiguration.getAllowTypes().toArray(new String[0]));
         }
         
         // Check file size
-        if (request.size() > mediaConfiguration.getMaxSize().toBytes()) {
+        if (request.size() > mediaConfiguration.getMaxSizeBytes()) {
             throw new MediumSizeExceededException("uploaded_file", request.size(), 
-                    mediaConfiguration.getMaxSize().toBytes());
+                    mediaConfiguration.getMaxSizeBytes());
         }
         
         // Check number of files
         int currentFileCount = post.getMedia() != null ? post.getMedia().size() : 0;
-        if (currentFileCount >= mediaServiceConfiguration.getMaxFilesPerPost()) {
+        if (currentFileCount >= mediaConfiguration.getMaxFiles()) {
             throw new TooManyMediaException(post.getId(), currentFileCount, 
-                    mediaServiceConfiguration.getMaxFilesPerPost());
+                    mediaConfiguration.getMaxFiles());
         }
     }
 

@@ -11,52 +11,50 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * Post media file upload configuration class
- * Configures parameters for post media file uploads, including storage bucket, file type restrictions, etc.
+ * Comment media file upload configuration class
+ * Configures parameters for comment media file uploads, including storage bucket, file type restrictions, etc.
  * 
  * @author BBS Team
  */
-@ConfigurationProperties(prefix = "bbs.oss.post-media")
+@ConfigurationProperties(prefix = "bbs.oss.comment-media")
 @Component
 @Data
-public class MediaConfiguration {
+public class CommentMediaConfiguration {
 
     /**
-     * OSS bucket name for media storage
+     * OSS bucket name for comment media storage
      */
     @NotBlank
     private String bucket;
 
     /**
-     * Storage path prefix for media files
+     * Storage path prefix for comment media files
      */
-    private String prefix = "/posts";
+    private String prefix = "/comments";
 
     /**
-     * Maximum size for individual media files, defaults to 50MB
+     * Maximum size for individual comment media files, defaults to 20MB
      */
-    private DataSize maxSize = DataSize.ofMegabytes(50);
+    private DataSize maxSize = DataSize.ofMegabytes(20);
 
     /**
-     * Maximum number of media files per post
+     * Maximum number of media files per comment
      */
     @Positive
-    private int maxFiles = 10;
+    private int maxFiles = 5;
 
     /**
-     * List of allowed MIME types for media file uploads
+     * List of allowed MIME types for comment media file uploads (more restrictive than posts)
      */
     private List<String> allowTypes = List.of(
-            // Image types
-            "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
-            // Video types  
-            "video/mp4", "video/mpeg", "video/quicktime", "video/webm",
+            // Image types (more restrictive than posts)
+            "image/jpeg", "image/png", "image/gif", "image/webp",
+            // Video types (more restrictive than posts)
+            "video/mp4", "video/webm",
             // Audio types
-            "audio/mpeg", "audio/wav", "audio/ogg",
-            // Document types
-            "application/pdf", "text/plain",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            "audio/mpeg", "audio/wav",
+            // Basic document types
+            "text/plain", "application/pdf"
     );
 
     /**
@@ -65,7 +63,7 @@ public class MediaConfiguration {
     private Duration expiredAfter = Duration.ofSeconds(60);
     
     /**
-     * Check if the media type is allowed for posts
+     * Check if the media type is allowed for comments
      *
      * @param mediaType the media type to check
      * @return true if allowed, false otherwise

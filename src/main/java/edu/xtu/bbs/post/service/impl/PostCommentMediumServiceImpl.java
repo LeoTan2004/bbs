@@ -1,12 +1,13 @@
 package edu.xtu.bbs.post.service.impl;
 
+import edu.xtu.bbs.post.config.CommentMediaConfiguration;
 import edu.xtu.bbs.post.dto.CommentMediumUploadRequest;
 import edu.xtu.bbs.post.dto.MediumUploadResult;
 import edu.xtu.bbs.post.exception.*;
 import edu.xtu.bbs.post.model.Medium;
 import edu.xtu.bbs.post.model.PostComment;
 import edu.xtu.bbs.post.repo.PostCommentRepository;
-import edu.xtu.bbs.post.service.MediaOssService;
+import edu.xtu.bbs.post.service.CommentMediaOssService;
 import edu.xtu.bbs.post.service.PostCommentMediumService;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -24,20 +25,9 @@ import java.util.stream.Collectors;
 public class PostCommentMediumServiceImpl implements PostCommentMediumService {
 
     private final PostCommentRepository commentRepository;
-    private final MediaOssService mediaOssService;
+    private final CommentMediaConfiguration commentMediaConfiguration;
+    private final CommentMediaOssService commentMediaOssService;
 
-    // Maximum number of media files per comment
-    private static final int MAX_MEDIA_PER_COMMENT = 9;
-    
-    // Maximum file size (50MB)
-    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024;
-    
-    // Supported media types
-    private static final Set<String> SUPPORTED_MEDIA_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp",
-            "video/mp4", "video/webm", "video/avi",
-            "audio/mp3", "audio/wav", "audio/ogg"
-    );
 
     @Override
     public List<Medium> getMediaByCommentId(@NotNull Integer commentId) {
@@ -55,9 +45,7 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
     @Override
     public List<Medium> getMediaByCommentId(@NotNull Integer userId, @NotNull Integer commentId) {
         log.debug("Getting media for comment {} for user {}", commentId, userId);
-        
-        // For comments, media is usually public unless the comment is deleted
-        // TODO: Add access control logic if needed
+
         return getMediaByCommentId(commentId);
     }
 
@@ -78,29 +66,31 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
             throw new UploadNotPermittedException(userId, commentId, "User does not have permission to upload to this comment");
         }
         
-        // Validate file type
-        if (!SUPPORTED_MEDIA_TYPES.contains(uploadRequest.type())) {
-            throw new UnsupportedMediumTypeException("comment_media", uploadRequest.type(), SUPPORTED_MEDIA_TYPES.toArray(new String[0]));
-        }
+        // Validate upload request
+        validateUploadRequest(uploadRequest, comment);
         
-        // Validate file size
-        if (uploadRequest.size() > MAX_FILE_SIZE) {
-            throw new MediumSizeExceededException("comment_media", uploadRequest.size(), MAX_FILE_SIZE);
-        }
+        // Generate upload URL using CommentMediaOssService
+        String uploadUrl = commentMediaOssService.generateCommentMediaUploadUrl(userId, uploadRequest.type(), uploadRequest.size());
         
-        // Check media count limit
-        List<Medium> existingMedia = comment.getMedia();
-        if (existingMedia != null && existingMedia.size() >= MAX_MEDIA_PER_COMMENT) {
-            throw new TooManyMediaException(commentId, existingMedia.size(), MAX_MEDIA_PER_COMMENT);
-        }
+        // Generate unique filename and access URL
+        String filename = commentMediaOssService.generateUniqueFilename(uploadRequest.type());
+        String accessUrl = commentMediaOssService.generateCommentMediaAccessUrl(userId, filename);
         
-        // Generate upload URL using MediaOssService
-        // TODO: Implement actual media upload logic
-        String mediumId = UUID.randomUUID().toString();
-        String uploadUrl = "https://upload.example.com/" + mediumId;
-        String accessUrl = "https://media.example.com/" + mediumId;
+        // Create medium record
+        Medium medium = new Medium();
+        medium.setId(generateMediumId());
+        medium.setType(uploadRequest.type());
+        medium.setDisplayUrl(accessUrl);
+        medium.setResourceUrl(accessUrl);
         
-        log.info("Generated upload URLs for medium {} in comment {}", mediumId, commentId);
+        // Add to comment's media list
+        List<Medium> mediaList = comment.getMedia() != null ? comment.getMedia() : new ArrayList<>();
+        mediaList.add(medium);
+        comment.setMedia(mediaList);
+        
+        commentRepository.save(comment);
+        
+        log.info("Medium uploaded to comment {} by user {}: {}", commentId, userId, medium.getId());
         
         return new MediumUploadResult(uploadUrl, accessUrl);
     }
@@ -161,8 +151,9 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
         }
         
         // Validate new media type
-        if (!SUPPORTED_MEDIA_TYPES.contains(newType)) {
-            throw new UnsupportedMediumTypeException("comment_media", newType, SUPPORTED_MEDIA_TYPES.toArray(new String[0]));
+        if (!commentMediaConfiguration.isTypeAllowed(newType)) {
+            throw new UnsupportedMediumTypeException("comment_media", newType, 
+                    commentMediaConfiguration.getAllowTypes().toArray(new String[0]));
         }
         
         // Find and update the medium
@@ -199,6 +190,33 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
         // TODO: Implement actual permission check logic
         // For now, assume all comment media is publicly accessible
         return true;
+    }
+
+    private void validateUploadRequest(CommentMediumUploadRequest request, PostComment comment)
+            throws UnsupportedMediumTypeException, MediumSizeExceededException, TooManyMediaException {
+        
+        // Check file type
+        if (!commentMediaConfiguration.isTypeAllowed(request.type())) {
+            throw new UnsupportedMediumTypeException("comment_media", request.type(), 
+                    commentMediaConfiguration.getAllowTypes().toArray(new String[0]));
+        }
+        
+        // Check file size
+        if (request.size() > commentMediaConfiguration.getMaxSizeBytes()) {
+            throw new MediumSizeExceededException("comment_media", request.size(), 
+                    commentMediaConfiguration.getMaxSizeBytes());
+        }
+        
+        // Check number of files
+        int currentFileCount = comment.getMedia() != null ? comment.getMedia().size() : 0;
+        if (currentFileCount >= commentMediaConfiguration.getMaxFiles()) {
+            throw new TooManyMediaException(comment.getId(), currentFileCount, 
+                    commentMediaConfiguration.getMaxFiles());
+        }
+    }
+
+    private String generateMediumId() {
+        return UUID.randomUUID().toString();
     }
 
 }

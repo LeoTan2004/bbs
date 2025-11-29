@@ -52,7 +52,7 @@ bbs:
       prefix: "/avatars"
       expired-after: 30s
     # Post media file configuration
-    media:
+    post-media:
       bucket: ${OSS_MEDIA_BUCKET:media-bucket}
       allow-types:
         - "image/jpeg"
@@ -72,12 +72,27 @@ bbs:
         - "application/msword"
         - "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
       max-size: 50MB
+      max-files: ${OSS_MAX_FILES_PER_POST:10}
       prefix: "/posts"
       expired-after: 60s
-  # Media service configuration
-  media:
-    base-url: ${MEDIA_BASE_URL:http://localhost:8080/api/media}
-    max-files-per-post: ${MEDIA_MAX_FILES_PER_POST:10}
+    # Comment media file configuration  
+    comment-media:
+      bucket: ${OSS_MEDIA_BUCKET:media-bucket}
+      allow-types:
+        - "image/jpeg"
+        - "image/png"
+        - "image/gif"
+        - "image/webp"
+        - "video/mp4"
+        - "video/webm"
+        - "audio/mpeg"
+        - "audio/wav"
+        - "text/plain"
+        - "application/pdf"
+      max-size: 20MB
+      max-files: ${OSS_MAX_FILES_PER_COMMENT:5}
+      prefix: "/comments"
+      expired-after: 60s
   security:
     jwt:
       secret-key: ${JWT_SECRET_KEY}
