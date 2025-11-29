@@ -92,7 +92,7 @@ public class MediaOssService {
      */
     public String generateUniqueFilename(String contentType) {
         String extension = getFileExtension(contentType);
-        return UUID.randomUUID().toString() + extension;
+        return UUID.randomUUID() + extension;
     }
 
     /**

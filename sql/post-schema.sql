@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public_matric
     id         INT AUTO_INCREMENT PRIMARY KEY,
     post_id    INT NOT NULL,
 
-    comments INT DEFAULT 0,
+    comments   INT       DEFAULT 0,
     likes      INT       DEFAULT 0,
     favorites  INT       DEFAULT 0,
 
@@ -53,6 +53,27 @@ CREATE TABLE IF NOT EXISTS post_favorite
     user_id    INT NOT NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES `user` (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS post_comment
+(
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+
+    post_id        INT          NOT NULL,
+    user_id        INT          NOT NULL,
+    parent_post_id INT               DEFAULT NULL,
+    media          JSON              DEFAULT NULL,
+    content        TEXT         NOT NULL,
+    status         VARCHAR(50)  NOT NULL DEFAULT 'PUBLISHED',
+
+    comments       INT               DEFAULT 0,
+    likes          INT               DEFAULT 0,
+
+    created_at     TIMESTAMP         DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP         DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES `user` (id) ON DELETE CASCADE
