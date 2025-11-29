@@ -216,6 +216,148 @@ public class GlobalExceptionHandler {
         return ResponseEntity.ok(response);
     }
 
+    // ==================== Post Module Exception Handlers ====================
+
+    /**
+     * Handle post not found exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.PostNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePostNotFoundException(edu.xtu.bbs.post.exception.PostNotFoundException e) {
+        log.warn("Post not found exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.POST_NOT_FOUND, e.getMessage());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle comment not found exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.CommentNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCommentNotFoundException(edu.xtu.bbs.post.exception.CommentNotFoundException e) {
+        log.warn("Comment not found exception: {}", e.toString());
+        ApiResponse<Object> response = ApiResponse.error(e.getResponseCode(), e.getFinalMessage());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle modify not permitted exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.ModifyNotPermittedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleModifyNotPermittedException(edu.xtu.bbs.post.exception.ModifyNotPermittedException e) {
+        log.warn("Modify not permitted exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.POST_PERMISSION_DENIED, "You don't have permission to modify this content");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle comment permission denied exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.CommentPermissionDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCommentPermissionDeniedException(edu.xtu.bbs.post.exception.CommentPermissionDeniedException e) {
+        log.warn("Comment permission denied exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.COMMENT_PERMISSION_DENIED, "You don't have permission to operate this comment");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle post status not allowed exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.PostStatusNotAllowedException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePostStatusNotAllowedException(edu.xtu.bbs.post.exception.PostStatusNotAllowedException e) {
+        log.warn("Post status not allowed exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, "Operation not allowed for current post status");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle comment status not allowed exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.CommentStatusNotAllowedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCommentStatusNotAllowedException(edu.xtu.bbs.post.exception.CommentStatusNotAllowedException e) {
+        log.warn("Comment status not allowed exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, "Operation not allowed for current comment status");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle sensitive content exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.SensitiveContentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleSensitiveContentException(edu.xtu.bbs.post.exception.SensitiveContentException e) {
+        log.warn("Sensitive content exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, "Content contains sensitive material and cannot be published");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle deletion failed exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.DeletionFailedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDeletionFailedException(edu.xtu.bbs.post.exception.DeletionFailedException e) {
+        log.warn("Deletion failed exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.SYSTEM_ERROR, "Failed to delete content");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle upload not permitted exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.UploadNotPermittedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUploadNotPermittedException(edu.xtu.bbs.post.exception.UploadNotPermittedException e) {
+        log.warn("Upload not permitted exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.FILE_UPLOAD_ERROR, "You don't have permission to upload to this content");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle unsupported medium type exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.UnsupportedMediumTypeException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnsupportedMediumTypeException(edu.xtu.bbs.post.exception.UnsupportedMediumTypeException e) {
+        log.warn("Unsupported medium type exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.FILE_UPLOAD_ERROR, "Unsupported file type");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle medium size exceeded exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.MediumSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMediumSizeExceededException(edu.xtu.bbs.post.exception.MediumSizeExceededException e) {
+        log.warn("Medium size exceeded exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.FILE_UPLOAD_ERROR, "File size exceeds the allowed limit");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle too many media exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.TooManyMediaException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTooManyMediaException(edu.xtu.bbs.post.exception.TooManyMediaException e) {
+        log.warn("Too many media exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.FILE_UPLOAD_ERROR, "Too many media files attached");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle duplicate operation exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.DuplicateOperationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDuplicateOperationException(edu.xtu.bbs.post.exception.DuplicateOperationException e) {
+        log.warn("Duplicate operation exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.PARAM_INVALID, "Duplicate operation detected");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Handle concurrent modification exceptions
+     */
+    @ExceptionHandler(edu.xtu.bbs.post.exception.ConcurrentModificationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleConcurrentModificationException(edu.xtu.bbs.post.exception.ConcurrentModificationException e) {
+        log.warn("Concurrent modification exception: {}", e.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(ResponseCode.SYSTEM_ERROR, "Content was modified by another operation. Please refresh and try again.");
+        return ResponseEntity.ok(response);
+    }
+
     /**
      * Handle Spring Security authentication exceptions
      */

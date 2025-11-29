@@ -194,16 +194,133 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public Post updatePostStatus(Integer postId, PostStatus newStatus) throws PostNotFoundException {
-        log.debug("Updating post {} status to {}", postId, newStatus);
+    public Post togglePostStatus(Integer userId, Integer postId)
+            throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, SensitiveContentException {
+
+        log.debug("Toggling status for post {} by user {}", postId, userId);
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+
+        // Check ownership
+        if (!post.getAuthor().getId().equals(userId)) {
+            throw new ModifyNotPermittedException(postId, userId, "User does not own post");
+        }
+
+        // Toggle status
+        if (post.getStatus() == PostStatus.DRAFT) {
+            // Check for sensitive content before publishing
+            checkSensitiveContent(post.getTitle(), post.getContent());
+
+            // Validate content before publishing
+            if (!StringUtils.hasText(post.getTitle())) {
+                throw new SensitiveContentException("title", "Title cannot be empty");
+            }
+
+            post.setStatus(PostStatus.PUBLISHED);
+
+            // Create public metrics if not exist
+            if (publicMatricRepository.findByPostId(postId).isEmpty()) {
+                PublicMatric publicMatric = new PublicMatric();
+                publicMatric.setPost(post);
+                publicMatric.setComments(0);
+                publicMatric.setLikes(0);
+                publicMatric.setFavorites(0);
+                publicMatricRepository.save(publicMatric);
+            }
+
+        } else if (post.getStatus() == PostStatus.PUBLISHED) {
+            post.setStatus(PostStatus.DRAFT);
+        } else {
+            throw new PostStatusNotAllowedException(postId, post.getStatus(), "toggle status");
+        }
+
+        Post updatedPost = postRepository.save(post);
+        log.info("Toggled post {} status to {} for user {}", postId, updatedPost.getStatus(), userId);
+
+        return updatedPost;
+    }
+
+    @Override
+    @Transactional
+    public Post convertToDraft(Integer userId, Integer postId)
+            throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException {
+
+        log.debug("Converting post {} to draft for user {}", postId, userId);
         
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
-        
-        post.setStatus(newStatus);
+
+        // Check ownership
+        if (!post.getAuthor().getId().equals(userId)) {
+            throw new ModifyNotPermittedException(postId, userId, "User does not own post");
+        }
+
+        // Check current status
+        if (post.getStatus() == PostStatus.DRAFT) {
+            log.debug("Post {} is already in draft status", postId);
+            return post;
+        }
+
+        if (post.getStatus() != PostStatus.PUBLISHED) {
+            throw new PostStatusNotAllowedException(postId, post.getStatus(), "convert to draft");
+        }
+
+        post.setStatus(PostStatus.DRAFT);
         Post updatedPost = postRepository.save(post);
+
+        log.info("Converted post {} to draft for user {}", postId, userId);
+        return updatedPost;
+    }
+
+    @Override
+    @Transactional
+    public Post convertToPublished(Integer userId, Integer postId)
+            throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, SensitiveContentException {
+
+        log.debug("Converting post {} to published for user {}", postId, userId);
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+
+        // Check ownership
+        if (!post.getAuthor().getId().equals(userId)) {
+            throw new ModifyNotPermittedException(postId, userId, "User does not own post");
+        }
+
+        // Check current status
+        if (post.getStatus() == PostStatus.PUBLISHED) {
+            log.debug("Post {} is already published", postId);
+            return post;
+        }
+
+        if (post.getStatus() != PostStatus.DRAFT) {
+            throw new PostStatusNotAllowedException(postId, post.getStatus(), "publish");
+        }
+
+        // Validate content before publishing
+        if (!StringUtils.hasText(post.getTitle())) {
+            throw new SensitiveContentException("title", "Title cannot be empty");
+        }
+
+        // Check for sensitive content
+        checkSensitiveContent(post.getTitle(), post.getContent());
+
+        post.setStatus(PostStatus.PUBLISHED);
+
+        // Create public metrics if not exist
+        if (publicMatricRepository.findByPostId(postId).isEmpty()) {
+            PublicMatric publicMatric = new PublicMatric();
+            publicMatric.setPost(post);
+            publicMatric.setComments(0);
+            publicMatric.setLikes(0);
+            publicMatric.setFavorites(0);
+            publicMatricRepository.save(publicMatric);
+        }
+
+        Post updatedPost = postRepository.save(post);
+        log.info("Published post {} for user {}", postId, userId);
         
-        log.info("Updated post {} status to {}", postId, newStatus);
         return updatedPost;
     }
 

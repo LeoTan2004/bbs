@@ -3,7 +3,6 @@ package edu.xtu.bbs.post.service;
 import edu.xtu.bbs.post.dto.DraftContentEditor;
 import edu.xtu.bbs.post.exception.*;
 import edu.xtu.bbs.post.model.Post;
-import edu.xtu.bbs.post.model.PostStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -113,15 +112,45 @@ public interface PostService {
     Page<Post> getHotPublishedPosts(Pageable pageable);
 
     /**
-     * Update post status (for content moderation)
+     * Toggle post status between DRAFT and PUBLISHED
      *
-     * @param postId    the post id
-     * @param newStatus the new status
+     * @param userId the user id
+     * @param postId the post id
      * @return the updated post
-     * @throws PostNotFoundException when the post is not found
+     * @throws PostNotFoundException         when the post is not found
+     * @throws ModifyNotPermittedException   when the user doesn't have permission to modify the post
+     * @throws PostStatusNotAllowedException when the post status cannot be changed
+     * @throws SensitiveContentException     when content contains sensitive material (for publishing)
      */
-    Post updatePostStatus(Integer postId, PostStatus newStatus)
-            throws PostNotFoundException;
+    Post togglePostStatus(Integer userId, Integer postId)
+            throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, SensitiveContentException;
+
+    /**
+     * Convert post to draft status
+     *
+     * @param userId the user id
+     * @param postId the post id
+     * @return the updated post
+     * @throws PostNotFoundException       when the post is not found
+     * @throws ModifyNotPermittedException when the user doesn't have permission to modify the post
+     * @throws PostStatusNotAllowedException when the post cannot be converted to draft
+     */
+    Post convertToDraft(Integer userId, Integer postId)
+            throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException;
+
+    /**
+     * Convert post to published status
+     *
+     * @param userId the user id
+     * @param postId the post id
+     * @return the updated post
+     * @throws PostNotFoundException         when the post is not found
+     * @throws ModifyNotPermittedException   when the user doesn't have permission to modify the post
+     * @throws PostStatusNotAllowedException when the post cannot be published
+     * @throws SensitiveContentException     when content contains sensitive material
+     */
+    Post convertToPublished(Integer userId, Integer postId)
+            throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, SensitiveContentException;
 
     /**
      * Delete published post by id
