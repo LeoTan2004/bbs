@@ -1,5 +1,6 @@
 package edu.xtu.bbs.post.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.xtu.bbs.post.converter.MediumListConverter;
 import edu.xtu.bbs.user.model.User;
 import jakarta.persistence.*;
@@ -26,6 +27,7 @@ public class PostComment {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "post_id", nullable = false)
+    @JsonIgnore
     private Post post;
 
     @NotNull

@@ -1,5 +1,6 @@
 package edu.xtu.bbs.post.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.xtu.bbs.user.model.User;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -25,10 +26,12 @@ public class CommentLike {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comment_id", nullable = false)
+    @JsonIgnore
     private PostComment comment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private User user;
 
     @Column(name = "created_at", nullable = false)

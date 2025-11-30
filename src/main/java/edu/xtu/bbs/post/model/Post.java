@@ -1,5 +1,6 @@
 package edu.xtu.bbs.post.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.xtu.bbs.post.converter.MediumListConverter;
 import edu.xtu.bbs.user.model.User;
 import jakarta.persistence.*;
@@ -62,6 +63,7 @@ public class Post {
     private Instant updatedAt;
 
     @OneToOne(mappedBy = "post")
+    @JsonIgnore
     private PublicMatric publicMatrics;
 
 }
