@@ -164,12 +164,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WeChatRegisterResponse'
-        '400':
-          description: 注册失败
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
   /auth/login/send-code:
     post:
@@ -602,6 +596,2416 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /posts/draft:
+    get:
+      tags:
+        - 帖子管理
+      summary: 获取当前用户帖子草稿
+      description: |
+        获取当前登录用户最新保存的帖子草稿。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: 获取草稿成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/draft/{draftId}:
+    put:
+      tags:
+        - 帖子管理
+      summary: 编辑帖子草稿
+      description: |
+        更新指定草稿的标题、正文或分类信息。
+        
+        **权限要求：** 需要登录且必须是草稿作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: draftId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 草稿ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftContentEditorRequest'
+      responses:
+        '200':
+          description: 草稿更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限编辑该草稿
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 草稿不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/draft/{draftId}/publish:
+    post:
+      tags:
+        - 帖子管理
+      summary: 发布帖子草稿
+      description: |
+        将指定草稿发布为公开帖子。
+        
+        **权限要求：** 需要登录且必须是草稿作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: draftId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 草稿ID
+      responses:
+        '200':
+          description: 发布成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: 草稿状态不允许发布或内容存在敏感风险
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限发布该草稿
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 草稿不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts:
+    get:
+      tags:
+        - 帖子管理
+      summary: 分页查询公开帖子
+      description: |
+        获取已发布帖子列表，支持按分类筛选与分页。
+        
+        **默认排序：** 热度优先
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "学习心得"
+          description: 按分类过滤帖子
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,desc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPageResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/hot:
+    get:
+      tags:
+        - 帖子管理
+      summary: 获取热门帖子
+      description: |
+        获取系统推荐的热门帖子列表，支持分页。
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,desc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPageResponse'
+
+  /posts/search:
+    get:
+      tags:
+        - 帖子管理
+      summary: 搜索帖子
+      description: |
+        根据关键词搜索已发布帖子，支持模糊匹配。
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "计算机网络"
+          description: 搜索关键词
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,desc`
+      responses:
+        '200':
+          description: 搜索成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPageResponse'
+        '400':
+          description: 搜索条件无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}:
+    parameters:
+      - name: postId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: 帖子ID
+    get:
+      tags:
+        - 帖子管理
+      summary: 获取帖子详情
+      description: |
+        根据帖子ID查看已发布帖子的完整信息。
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '404':
+          description: 帖子不存在或未发布
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - 帖子管理
+      summary: 删除帖子
+      description: |
+        删除指定帖子。
+        
+        **权限要求：** 需要登录且必须是帖子作者或具有管理权限
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: 删除结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限删除该帖子
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/toggle-status:
+    patch:
+      tags:
+        - 帖子管理
+      summary: 切换帖子上下线状态
+      description: |
+        在上线与下线状态间切换帖子，常用于隐藏或恢复帖子。
+        
+        **权限要求：** 需要登录且必须是帖子作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 状态切换成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限执行该操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/to-draft:
+    patch:
+      tags:
+        - 帖子管理
+      summary: 将帖子转为草稿
+      description: |
+        将已发布的帖子重新保存为草稿状态，用户可继续编辑。
+        
+        **权限要求：** 需要登录且必须是帖子作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 转换成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限执行该操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/publish:
+    patch:
+      tags:
+        - 帖子管理
+      summary: 发布已存在的帖子
+      description: |
+        将草稿或下线的帖子重新发布。
+        
+        **权限要求：** 需要登录且必须是帖子作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 发布成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: 帖子状态不允许发布或内容存在敏感风险
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限执行该操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/user/{userId}:
+    get:
+      tags:
+        - 帖子管理
+      summary: 查看用户发布的帖子
+      description: |
+        根据用户ID分页查询该用户发布的公开帖子。
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,desc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPageResponse'
+
+  /posts/{postId}/like:
+    post:
+      tags:
+        - 帖子互动
+      summary: 点赞帖子
+      description: |
+        为指定帖子点赞，返回点赞后的状态。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 点赞成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子不存在或不可操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - 帖子互动
+      summary: 取消点赞帖子
+      description: |
+        取消当前用户对指定帖子的点赞。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 取消点赞成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子不存在或不可操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/like/status:
+    get:
+      tags:
+        - 帖子互动
+      summary: 查询帖子点赞状态
+      description: |
+        判断当前登录用户是否已点赞指定帖子。未登录时返回`false`。
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/like/count:
+    get:
+      tags:
+        - 帖子互动
+      summary: 获取帖子点赞数
+      description: |
+        返回指定帖子的总点赞数量。
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/liked:
+    get:
+      tags:
+        - 帖子互动
+      summary: 获取当前用户点赞的帖子
+      description: |
+        分页返回当前登录用户点赞过的帖子列表。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,desc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPageResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/user/{userId}/liked:
+    get:
+      tags:
+        - 帖子互动
+      summary: 获取用户点赞的帖子
+      description: |
+        分页返回指定用户点赞过的帖子列表，仅支持查看本人数据。
+        
+        **权限要求：** 需要登录且只能查看自己的点赞列表
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,desc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPageResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限查看他人点赞列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/user/{userId}/liked/count:
+    get:
+      tags:
+        - 帖子互动
+      summary: 获取用户点赞帖子数量
+      description: |
+        统计指定用户点赞过的帖子数量，仅支持本人查看。
+        
+        **权限要求：** 需要登录且只能查看自己的统计
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限查看他人统计
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/favor:
+    post:
+      tags:
+        - 帖子互动
+      summary: 收藏帖子
+      description: |
+        收藏指定帖子，返回收藏后的状态。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 收藏成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子不存在或不可收藏
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - 帖子互动
+      summary: 取消收藏帖子
+      description: |
+        取消当前用户对指定帖子的收藏。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 取消收藏成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子不存在或不可收藏
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/favor/status:
+    get:
+      tags:
+        - 帖子互动
+      summary: 查询帖子收藏状态
+      description: |
+        判断当前登录用户是否已收藏指定帖子。未登录时返回`false`。
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/favor/count:
+    get:
+      tags:
+        - 帖子互动
+      summary: 获取帖子收藏数
+      description: |
+        返回指定帖子的收藏总数。
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/favored:
+    get:
+      tags:
+        - 帖子互动
+      summary: 获取当前用户收藏的帖子
+      description: |
+        分页返回当前登录用户收藏的帖子列表。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,desc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPageResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/user/{userId}/favored:
+    get:
+      tags:
+        - 帖子互动
+      summary: 获取用户收藏的帖子
+      description: |
+        分页返回指定用户收藏的帖子列表，仅支持查看本人数据。
+        
+        **权限要求：** 需要登录且只能查看自己的收藏列表
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,desc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPageResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限查看他人收藏列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/user/{userId}/favored/count:
+    get:
+      tags:
+        - 帖子互动
+      summary: 获取用户收藏帖子数量
+      description: |
+        统计指定用户收藏的帖子数量，仅支持本人查看。
+        
+        **权限要求：** 需要登录且只能查看自己的统计
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限查看他人统计
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/batch/like:
+    post:
+      tags:
+        - 帖子互动
+      summary: 批量点赞帖子
+      description: |
+        批量为帖子点赞，返回每个帖子的操作结果。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: integer
+              example: [ 1, 2, 3 ]
+      responses:
+        '200':
+          description: 批量点赞结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerBooleanMapResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 部分帖子不存在或不可操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - 帖子互动
+      summary: 批量取消点赞帖子
+      description: |
+        批量取消对帖子的点赞，返回每个帖子的操作结果。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: integer
+              example: [ 1, 2, 3 ]
+      responses:
+        '200':
+          description: 批量取消点赞结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerBooleanMapResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 部分帖子不存在或不可操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/batch/like/status:
+    get:
+      tags:
+        - 帖子互动
+      summary: 批量查询帖子点赞状态
+      description: |
+        批量查询当前登录用户对多个帖子的点赞状态。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postIds
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+          description: 帖子ID集合，可重复提供参数，如`postIds=1&postIds=2`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerBooleanMapResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/batch/favor:
+    post:
+      tags:
+        - 帖子互动
+      summary: 批量收藏帖子
+      description: |
+        批量收藏帖子，返回每个帖子的操作结果。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: integer
+              example: [ 1, 2, 3 ]
+      responses:
+        '200':
+          description: 批量收藏结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerBooleanMapResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 部分帖子不存在或不可操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - 帖子互动
+      summary: 批量取消收藏帖子
+      description: |
+        批量取消收藏帖子，返回每个帖子的操作结果。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: integer
+              example: [ 1, 2, 3 ]
+      responses:
+        '200':
+          description: 批量取消收藏结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerBooleanMapResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 部分帖子不存在或不可操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/batch/favor/status:
+    get:
+      tags:
+        - 帖子互动
+      summary: 批量查询帖子收藏状态
+      description: |
+        批量查询当前登录用户对多个帖子的收藏状态。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postIds
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+          description: 帖子ID集合，可重复提供参数，如`postIds=1&postIds=2`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerBooleanMapResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/media:
+    get:
+      tags:
+        - 帖子媒体
+      summary: 获取帖子媒体列表
+      description: |
+        获取帖子关联的媒体资源列表，未登录访问仅返回公开资源。
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediumListResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - 帖子媒体
+      summary: 上传帖子媒体
+      description: |
+        为帖子草稿上传媒体资源，返回上传URL与访问URL。
+        
+        **权限要求：** 需要登录且必须是帖子作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostMediumUploadRequest'
+      responses:
+        '200':
+          description: 上传凭证生成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediumUploadResponse'
+        '400':
+          description: 请求参数错误或超出限制
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限上传媒体
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子不存在或状态不允许上传
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{postId}/media/{mediumId}:
+    delete:
+      tags:
+        - 帖子媒体
+      summary: 删除帖子媒体
+      description: |
+        从帖子草稿中移除指定媒体资源，返回剩余媒体列表。
+        
+        **权限要求：** 需要登录且必须是帖子作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+        - name: mediumId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 媒体资源ID
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediumListResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限删除媒体
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子或媒体不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - 帖子媒体
+      summary: 更新帖子媒体类型
+      description: |
+        修改媒体资源的类型（如封面、正文图等）。
+        
+        **权限要求：** 需要登录且必须是帖子作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+        - name: mediumId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 媒体资源ID
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 媒体类型，例如`cover`、`image`
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediumResponse'
+        '400':
+          description: 类型参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限更新媒体
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子或媒体不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/media/{mediumId}/access:
+    get:
+      tags:
+        - 帖子媒体
+      summary: 检查媒体访问权限
+      description: |
+        校验当前登录用户是否拥有访问指定媒体资源的权限。未登录视为无权限。
+      parameters:
+        - name: mediumId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 媒体资源ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '404':
+          description: 媒体不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments:
+    post:
+      tags:
+        - 评论管理
+      summary: 发表评论
+      description: |
+        在帖子下创建新的评论或回复。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '200':
+          description: 评论创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostCommentEntityResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限评论
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子或父评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/{commentId}:
+    parameters:
+      - name: commentId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: 评论ID
+    get:
+      tags:
+        - 评论管理
+      summary: 获取评论详情
+      description: |
+        根据评论ID获取评论内容及互动信息。
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponseWrapper'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - 评论管理
+      summary: 编辑评论
+      description: |
+        更新评论内容，仅允许作者本人操作。
+        
+        **权限要求：** 需要登录并拥有该评论
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentRequest'
+      responses:
+        '200':
+          description: 编辑成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostCommentEntityResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限编辑该评论
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - 评论管理
+      summary: 删除评论
+      description: |
+        删除指定评论，需作者本人或拥有管理权限。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限删除该评论
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/post/{postId}:
+    get:
+      tags:
+        - 评论管理
+      summary: 分页获取帖子评论
+      description: |
+        获取帖子下的评论列表（包含互动信息），支持分页。
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,asc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentPageResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/{commentId}/replies:
+    get:
+      tags:
+        - 评论管理
+      summary: 分页获取评论回复
+      description: |
+        获取某条评论的回复列表（包含互动信息），支持分页。
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 父评论ID
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,asc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentPageResponse'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/user/{userId}:
+    get:
+      tags:
+        - 评论管理
+      summary: 分页获取用户评论
+      description: |
+        获取指定用户发表的评论列表，仅本人可查看完整数据。
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，格式示例：`createdAt,desc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentPageResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限查看他人评论列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/draft:
+    get:
+      tags:
+        - 评论管理
+      summary: 获取评论草稿
+      description: |
+        获取当前用户针对指定帖子的评论草稿。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: postId
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: 草稿对应的帖子ID
+        - name: parentCommentId
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: 草稿回复的父评论ID，顶级评论留空
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostCommentEntityResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 草稿不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - 评论管理
+      summary: 编辑评论草稿
+      description: |
+        更新评论草稿的目标与内容。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftCommentEditorRequest'
+      responses:
+        '200':
+          description: 草稿更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostCommentEntityResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限编辑草稿
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 草稿不存在或目标无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - 评论管理
+      summary: 清空评论草稿
+      description: |
+        删除当前用户的评论草稿。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: 清空成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 草稿不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/draft/publish:
+    post:
+      tags:
+        - 评论管理
+      summary: 发布评论草稿
+      description: |
+        发布当前用户的评论草稿。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: 发布成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostCommentEntityResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限发布草稿
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 草稿不存在或状态不允许发布
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/draft/exists:
+    get:
+      tags:
+        - 评论管理
+      summary: 检查评论草稿是否存在
+      description: |
+        返回当前用户是否存在未发布的评论草稿。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/{commentId}/like:
+    post:
+      tags:
+        - 评论管理
+      summary: 点赞或取消点赞评论
+      description: |
+        切换评论的点赞状态，返回当前状态。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 评论ID
+      responses:
+        '200':
+          description: 操作成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/{commentId}/like/status:
+    get:
+      tags:
+        - 评论管理
+      summary: 查询评论点赞状态
+      description: |
+        判断当前登录用户是否点赞指定评论。未登录时返回`false`。
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 评论ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/{commentId}/like/count:
+    get:
+      tags:
+        - 评论管理
+      summary: 获取评论点赞数
+      description: |
+        返回评论被点赞的总次数。
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 评论ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LongResponse'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/post/{postId}/count:
+    get:
+      tags:
+        - 评论管理
+      summary: 统计帖子评论数量
+      description: |
+        返回帖子下评论（含回复）的总数量。
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/post/{postId}/count/top-level:
+    get:
+      tags:
+        - 评论管理
+      summary: 统计帖子顶级评论数量
+      description: |
+        返回帖子下顶级评论（不含回复）的数量。
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 帖子ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerResponse'
+        '404':
+          description: 帖子不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/{commentId}/replies/count:
+    get:
+      tags:
+        - 评论管理
+      summary: 统计评论回复数量
+      description: |
+        返回指定评论下的回复数量。
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 评论ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerResponse'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/user/{userId}/count:
+    get:
+      tags:
+        - 评论管理
+      summary: 统计用户评论数量
+      description: |
+        返回指定用户发表的评论数量，仅支持本人查看。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 用户ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegerResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限查看他人统计
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/{commentId}/media:
+    get:
+      tags:
+        - 评论媒体
+      summary: 获取评论媒体列表
+      description: |
+        获取评论关联的媒体资源列表，未登录访问仅返回公开资源。
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 评论ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediumListResponse'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - 评论媒体
+      summary: 上传评论媒体
+      description: |
+        为评论上传媒体资源，返回上传URL与访问URL。
+        
+        **权限要求：** 需要登录且必须是评论作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 评论ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentMediumUploadRequest'
+      responses:
+        '200':
+          description: 上传凭证生成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediumUploadResponse'
+        '400':
+          description: 请求参数错误或超出限制
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限上传媒体
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 评论不存在或状态不允许上传
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/{commentId}/media/{mediumId}:
+    delete:
+      tags:
+        - 评论媒体
+      summary: 删除评论媒体
+      description: |
+        删除评论关联的媒体资源，返回剩余媒体列表。
+        
+        **权限要求：** 需要登录且必须是评论作者
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 评论ID
+        - name: mediumId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 媒体资源ID
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediumListResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权限删除媒体
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 评论或媒体不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
@@ -1057,6 +3461,634 @@ components:
             username: "用户名长度必须在2-50个字符之间"
             password: "密码长度必须在8-20个字符之间"
 
+    DraftContentEditorRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          description: 帖子标题
+          example: "如何准备计算机网络考试"
+        content:
+          type: string
+          description: 帖子正文内容（可为空表示继续保留原内容）
+          example: "分享一些复习计算机网络的资料和经验..."
+        category:
+          type: string
+          maxLength: 100
+          description: 帖子分类
+          example: "学习心得"
+
+    PostAuthor:
+      type: object
+      description: 帖子作者信息
+      properties:
+        id:
+          type: integer
+          example: 1001
+        username:
+          type: string
+          example: "johndoe"
+        nickname:
+          type: string
+          example: "约翰"
+        bio:
+          type: string
+          example: "喜欢分享编程经验"
+        profileSlug:
+          type: string
+          example: "john-profile"
+        avatarUrl:
+          type: string
+          format: uri
+          example: "https://cdn.example.com/avatar/john.jpg"
+        role:
+          type: string
+          enum:
+            - USER
+            - ADMIN
+            - MODERATOR
+          example: "USER"
+        status:
+          type: string
+          enum:
+            - Active
+            - Inactive
+            - Banned
+          example: "Active"
+        verifiedId:
+          type: integer
+          nullable: true
+          example: 10
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-02-01T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-05-01T12:30:00Z"
+
+    Medium:
+      type: object
+      description: 媒体资源信息
+      properties:
+        id:
+          type: string
+          example: "media_abc123"
+        displayUrl:
+          type: string
+          format: uri
+          description: 用于前端展示的访问地址
+          example: "https://cdn.example.com/post/media_abc123.jpg"
+        resourceUrl:
+          type: string
+          format: uri
+          description: 资源真实访问地址
+          example: "https://storage.example.com/media/media_abc123"
+        type:
+          type: string
+          description: 媒体类型，如image/video/cover等
+          example: "image"
+
+    PostDetail:
+      type: object
+      description: 帖子详细信息
+      properties:
+        id:
+          type: integer
+          example: 2001
+        author:
+          $ref: '#/components/schemas/PostAuthor'
+        title:
+          type: string
+          example: "计算机网络复习笔记"
+        content:
+          type: string
+          example: "这是一个关于计算机网络的详细复习资料..."
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/Medium'
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - PUBLISHED
+            - SUSPENDED
+            - UNDER_REVIEW
+          example: "PUBLISHED"
+        possiblySensitive:
+          type: boolean
+          example: false
+        category:
+          type: string
+          example: "学习心得"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-05-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-05-02T08:30:00Z"
+
+    SortInfo:
+      type: object
+      description: 排序信息
+      properties:
+        sorted:
+          type: boolean
+          example: false
+        unsorted:
+          type: boolean
+          example: true
+        empty:
+          type: boolean
+          example: true
+
+    PageMetadata:
+      type: object
+      description: 分页元数据
+      properties:
+        sort:
+          $ref: '#/components/schemas/SortInfo'
+        pageNumber:
+          type: integer
+          description: 当前页码（从0开始）
+          example: 0
+        pageSize:
+          type: integer
+          description: 每页数量
+          example: 10
+        offset:
+          type: integer
+          description: 偏移量
+          example: 0
+        paged:
+          type: boolean
+          example: true
+        unpaged:
+          type: boolean
+          example: false
+
+    PostPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostDetail'
+        pageable:
+          $ref: '#/components/schemas/PageMetadata'
+        totalElements:
+          type: integer
+          example: 42
+        totalPages:
+          type: integer
+          example: 5
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        sort:
+          $ref: '#/components/schemas/SortInfo'
+        numberOfElements:
+          type: integer
+          example: 10
+        first:
+          type: boolean
+          example: true
+        last:
+          type: boolean
+          example: false
+        empty:
+          type: boolean
+          example: false
+
+    PostResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/PostDetail'
+
+    PostPageResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/PostPage'
+
+    BooleanResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: boolean
+          example: true
+
+    IntegerResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: integer
+          example: 12
+
+    LongResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: integer
+          format: int64
+          example: 128
+
+    IntegerBooleanMapResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: object
+          additionalProperties:
+            type: boolean
+          description: 以帖子ID为键、布尔状态为值的映射
+          example:
+            "1": true
+            "2": false
+
+    EmptyResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          nullable: true
+          example: null
+
+    MediumListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Medium'
+
+    MediumResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/Medium'
+
+    PostMediumUploadRequest:
+      type: object
+      required:
+        - type
+        - size
+      properties:
+        type:
+          type: string
+          description: 媒体MIME类型，例如`image/jpeg`
+          example: "image/jpeg"
+        size:
+          type: integer
+          format: int64
+          minimum: 1
+          description: 文件大小（字节）
+          example: 524288
+
+    CommentMediumUploadRequest:
+      type: object
+      required:
+        - type
+        - size
+      properties:
+        type:
+          type: string
+          description: 媒体MIME类型，例如`image/png`
+          example: "image/png"
+        size:
+          type: integer
+          format: int64
+          minimum: 1
+          description: 文件大小（字节）
+          example: 204800
+
+    MediumUploadResult:
+      type: object
+      properties:
+        uploadUrl:
+          type: string
+          format: uri
+          description: 用于上传文件的预签名地址
+          example: "https://upload.example.com/post/abc123?signature=xyz"
+        accessUrl:
+          type: string
+          format: uri
+          description: 上传成功后访问媒体的地址
+          example: "https://cdn.example.com/post/abc123.jpg"
+
+    MediumUploadResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/MediumUploadResult'
+
+    CreateCommentRequest:
+      type: object
+      required:
+        - postId
+        - content
+      properties:
+        postId:
+          type: integer
+          description: 评论所属帖子ID
+          example: 2001
+        content:
+          type: string
+          maxLength: 2000
+          description: 评论内容
+          example: "这篇帖子非常有帮助，谢谢分享！"
+        parentCommentId:
+          type: integer
+          nullable: true
+          description: 回复的父评论ID，顶级评论留空
+          example: 3001
+
+    UpdateCommentRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          maxLength: 2000
+          description: 更新后的评论内容
+          example: "补充一下最新的参考资料链接..."
+
+    DraftCommentEditorRequest:
+      type: object
+      required:
+        - postId
+      properties:
+        postId:
+          type: integer
+          description: 草稿目标帖子ID
+          example: 2001
+        parentCommentId:
+          type: integer
+          nullable: true
+          description: 草稿回复的父评论ID，顶级评论留空
+          example: 3001
+        content:
+          type: string
+          description: 草稿内容
+          example: "先写个开头，稍后再完善..."
+
+    PostCommentUser:
+      type: object
+      description: 评论作者信息
+      properties:
+        id:
+          type: integer
+          example: 1001
+        username:
+          type: string
+          example: "johndoe"
+        nickname:
+          type: string
+          example: "约翰"
+        avatarUrl:
+          type: string
+          format: uri
+          example: "https://cdn.example.com/avatar/john.jpg"
+
+    PostCommentEntity:
+      type: object
+      description: 评论实体信息
+      properties:
+        id:
+          type: integer
+          example: 3001
+        user:
+          $ref: '#/components/schemas/PostCommentUser'
+        parentPostId:
+          type: integer
+          nullable: true
+          description: 父评论ID
+          example: null
+        content:
+          type: string
+          example: "这篇文章写得很好！"
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/Medium'
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - PUBLISHED
+            - DELETED
+          example: "PUBLISHED"
+        comments:
+          type: integer
+          description: 回复数量
+          example: 2
+        likes:
+          type: integer
+          description: 点赞数量
+          example: 5
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-05-01T12:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-05-02T09:10:00Z"
+
+    PostCommentEntityResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/PostCommentEntity'
+
+    CommentDetail:
+      type: object
+      description: 评论详情（包含互动信息）
+      properties:
+        id:
+          type: integer
+          example: 3001
+        postId:
+          type: integer
+          example: 2001
+        userId:
+          type: integer
+          example: 1001
+        username:
+          type: string
+          example: "johndoe"
+        userAvatar:
+          type: string
+          format: uri
+          example: "https://cdn.example.com/avatar/john.jpg"
+        parentCommentId:
+          type: integer
+          nullable: true
+          example: null
+        content:
+          type: string
+          example: "非常感谢分享！"
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/Medium'
+        comments:
+          type: integer
+          description: 回复数量
+          example: 2
+        likes:
+          type: integer
+          description: 点赞数量
+          example: 5
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-05-01T12:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-05-02T09:10:00Z"
+        isLiked:
+          type: boolean
+          description: 当前用户是否已点赞
+          example: true
+
+    CommentResponseWrapper:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/CommentDetail'
+
+    CommentPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentDetail'
+        pageable:
+          $ref: '#/components/schemas/PageMetadata'
+        totalElements:
+          type: integer
+          example: 24
+        totalPages:
+          type: integer
+          example: 3
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        sort:
+          $ref: '#/components/schemas/SortInfo'
+        numberOfElements:
+          type: integer
+          example: 8
+        first:
+          type: boolean
+          example: true
+        last:
+          type: boolean
+          example: false
+        empty:
+          type: boolean
+          example: false
+
+    CommentPageResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/CommentPage'
+
 tags:
   - name: 用户认证
     description: |
@@ -1078,6 +4110,45 @@ tags:
       - 查看信息：需要登录即可查看任何用户的公开信息
       - 修改资料：只能修改自己的资料
       - 上传头像：只能为自己上传头像
+  - name: 帖子管理
+    description: |
+      帖子内容管理接口，包括草稿编辑、发布、删除以及列表查询等功能。
+      
+      **功能亮点：**
+      - 支持草稿箱与发布状态切换
+      - 提供按分类、关键字搜索的分页查询
+      - 统一权限校验，确保只有作者可修改帖子
+  - name: 帖子互动
+    description: |
+      帖子点赞、收藏与批量操作相关接口，帮助实现互动数据统计。
+      
+      **包含能力：**
+      - 点赞/取消点赞、收藏/取消收藏
+      - 查看自己的点赞、收藏列表与统计
+      - 批量操作提高高频交互效率
+  - name: 帖子媒体
+    description: |
+      帖子媒体资源管理接口，用于上传、删除与访问校验。
+      
+      **注意事项：**
+      - 上传前需获取预签名URL
+      - 仅帖子作者可上传或删除媒体
+      - 支持校验媒体访问权限
+  - name: 评论管理
+    description: |
+      评论及回复的增删改查、草稿、互动统计接口。
+      
+      **功能概览：**
+      - 创建、编辑、删除评论
+      - 分页获取评论及回复
+      - 草稿保存与发布、点赞状态查询
+  - name: 评论媒体
+    description: |
+      评论媒体上传与管理接口，流程与帖子媒体一致。
+      
+      **说明：**
+      - 仅评论作者可上传/删除媒体
+      - 支持多媒体内容，遵守大小及类型限制
 
 # ==================== 错误码说明 ====================
 # 通用错误码 (1xxxx)
