@@ -93,6 +93,10 @@ bbs:
       max-files: ${OSS_MAX_FILES_PER_COMMENT:5}
       prefix: "/comments"
       expired-after: 60s
+  post:
+    media-limits:
+      max-post-media: ${OSS_MAX_FILES_PER_POST:10}
+      max-comment-media: ${OSS_MAX_FILES_PER_COMMENT:5}
   security:
     jwt:
       secret-key: ${JWT_SECRET_KEY}

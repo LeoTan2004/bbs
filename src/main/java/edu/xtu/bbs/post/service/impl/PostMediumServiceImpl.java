@@ -1,6 +1,7 @@
 package edu.xtu.bbs.post.service.impl;
 
 import edu.xtu.bbs.post.config.MediaConfiguration;
+import edu.xtu.bbs.post.config.PostMediaLimitConfiguration;
 import edu.xtu.bbs.post.dto.MediumUploadResult;
 import edu.xtu.bbs.post.dto.PostMediumUploadRequest;
 import edu.xtu.bbs.post.exception.*;
@@ -26,6 +27,7 @@ public class PostMediumServiceImpl implements PostMediumService {
 
     private final PostRepository postRepository;
     private final MediaConfiguration mediaConfiguration;
+    private final PostMediaLimitConfiguration mediaLimitConfiguration;
     private final MediaOssService mediaOssService;
 
     @Override
@@ -265,11 +267,12 @@ public class PostMediumServiceImpl implements PostMediumService {
                     mediaConfiguration.getMaxSizeBytes());
         }
         
-        // Check number of files
+        // Check number of files against configured limit
         int currentFileCount = post.getMedia() != null ? post.getMedia().size() : 0;
-        if (currentFileCount >= mediaConfiguration.getMaxFiles()) {
-            throw new TooManyMediaException(post.getId(), currentFileCount, 
-                    mediaConfiguration.getMaxFiles());
+        int maxAllowedFiles = Math.min(mediaConfiguration.getMaxFiles(), mediaLimitConfiguration.getMaxPostMedia());
+        if (currentFileCount >= maxAllowedFiles) {
+            throw new TooManyMediaException(post.getId(), currentFileCount,
+                maxAllowedFiles);
         }
     }
 

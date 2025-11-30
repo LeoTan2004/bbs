@@ -1,6 +1,7 @@
 package edu.xtu.bbs.post.service.impl;
 
 import edu.xtu.bbs.post.config.CommentMediaConfiguration;
+import edu.xtu.bbs.post.config.PostMediaLimitConfiguration;
 import edu.xtu.bbs.post.dto.CommentMediumUploadRequest;
 import edu.xtu.bbs.post.dto.MediumUploadResult;
 import edu.xtu.bbs.post.exception.*;
@@ -28,6 +29,7 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
 
     private final PostCommentRepository commentRepository;
     private final CommentMediaConfiguration commentMediaConfiguration;
+    private final PostMediaLimitConfiguration mediaLimitConfiguration;
     private final CommentMediaOssService commentMediaOssService;
 
 
@@ -355,11 +357,12 @@ public class PostCommentMediumServiceImpl implements PostCommentMediumService {
                     commentMediaConfiguration.getMaxSizeBytes());
         }
         
-        // Check number of files
+        // Check number of files against configured limit
         int currentFileCount = comment.getMedia() != null ? comment.getMedia().size() : 0;
-        if (currentFileCount >= commentMediaConfiguration.getMaxFiles()) {
-            throw new TooManyMediaException(comment.getId(), currentFileCount, 
-                    commentMediaConfiguration.getMaxFiles());
+        int maxAllowedFiles = Math.min(commentMediaConfiguration.getMaxFiles(), mediaLimitConfiguration.getMaxCommentMedia());
+        if (currentFileCount >= maxAllowedFiles) {
+            throw new TooManyMediaException(comment.getId(), currentFileCount,
+                maxAllowedFiles);
         }
     }
 
