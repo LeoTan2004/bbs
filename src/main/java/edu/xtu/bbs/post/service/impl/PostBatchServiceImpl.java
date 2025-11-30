@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -147,44 +148,40 @@ public class PostBatchServiceImpl implements PostBatchService {
     @Override
     public Map<Integer, Boolean> batchCheckLikeStatus(Integer userId, List<Integer> postIds) {
         log.debug("Checking like status for user {} on {} posts", userId, postIds.size());
-        
+
         Map<Integer, Boolean> results = new HashMap<>();
-        
-        // Use repository query for better performance
-        Set<Integer> likedPostIds = postLikeRepository.findByUserIdOrderByCreatedAtDesc(userId, 
-                org.springframework.data.domain.Pageable.unpaged())
-                .getContent()
-                .stream()
-                .map(like -> like.getPost().getId())
-                .filter(postIds::contains)
-                .collect(Collectors.toSet());
-        
+        if (postIds == null || postIds.isEmpty()) {
+            return results;
+        }
+
+        Set<Integer> likedPostIds = new HashSet<>(
+                postLikeRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds)
+        );
+
         for (Integer postId : postIds) {
             results.put(postId, likedPostIds.contains(postId));
         }
-        
+
         return results;
     }
 
     @Override
     public Map<Integer, Boolean> batchCheckFavorStatus(Integer userId, List<Integer> postIds) {
         log.debug("Checking favor status for user {} on {} posts", userId, postIds.size());
-        
+
         Map<Integer, Boolean> results = new HashMap<>();
-        
-        // Use repository query for better performance
-        Set<Integer> favoredPostIds = postFavoriteRepository.findByUserIdOrderByCreatedAtDesc(userId,
-                org.springframework.data.domain.Pageable.unpaged())
-                .getContent()
-                .stream()
-                .map(favor -> favor.getPost().getId())
-                .filter(postIds::contains)
-                .collect(Collectors.toSet());
-        
+        if (postIds == null || postIds.isEmpty()) {
+            return results;
+        }
+
+        Set<Integer> favoredPostIds = new HashSet<>(
+                postFavoriteRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds)
+        );
+
         for (Integer postId : postIds) {
             results.put(postId, favoredPostIds.contains(postId));
         }
-        
+
         return results;
     }
 

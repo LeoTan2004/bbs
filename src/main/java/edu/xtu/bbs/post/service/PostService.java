@@ -1,5 +1,6 @@
 package edu.xtu.bbs.post.service;
 
+import edu.xtu.bbs.post.dto.CreatePostRequest;
 import edu.xtu.bbs.post.dto.DraftContentEditor;
 import edu.xtu.bbs.post.exception.*;
 import edu.xtu.bbs.post.model.Post;
@@ -63,6 +64,21 @@ public interface PostService {
      */
     Post publishDraft(Integer userId, Integer draftId)
             throws PostNotFoundException, ModifyNotPermittedException, PostStatusNotAllowedException, SensitiveContentException;
+
+    // endregion
+
+    // region Direct Post Publishing
+
+    /**
+     * Create and publish a post without using the draft workflow
+     *
+     * @param userId the user id creating the post
+     * @param request the post creation request
+     * @return the published post
+     * @throws SensitiveContentException when the content contains sensitive material
+     */
+    Post createPost(Integer userId, CreatePostRequest request)
+            throws SensitiveContentException;
 
     // endregion
 

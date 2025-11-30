@@ -175,6 +175,13 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Integer> {
     List<Integer> findMutualLikes(@Param("userId1") Integer userId1, @Param("userId2") Integer userId2);
 
     /**
+     * Find liked posts for a user within a candidate id set
+     */
+    @Query("SELECT pl.post.id FROM PostLike pl WHERE pl.user.id = :userId AND pl.post.id IN :postIds")
+    List<Integer> findPostIdsByUserIdAndPostIdIn(@Param("userId") Integer userId,
+                                                 @Param("postIds") List<Integer> postIds);
+
+    /**
      * Delete a specific like by post and user
      *
      * @param postId The post ID

@@ -779,6 +779,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - 帖子管理
+      summary: 直接发布帖子
+      description: |
+        直接发布一个仅包含文字内容的帖子，跳过草稿箱流程。
+
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '200':
+          description: 发布成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: 请求参数错误或内容存在敏感风险
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /posts/hot:
     get:
@@ -2200,6 +2235,49 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: 无权限评论
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 帖子或父评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comments/direct:
+    post:
+      tags:
+        - 评论管理
+      summary: 直接发表评论
+      description: |
+        直接发布仅包含文字内容的评论或回复，跳过草稿箱流程。
+
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '200':
+          description: 评论发布成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostCommentEntityResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
           content:
             application/json:
               schema:
@@ -3850,6 +3928,28 @@ components:
           example: "Success"
         data:
           $ref: '#/components/schemas/MediumUploadResult'
+
+    CreatePostRequest:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          description: 帖子标题
+          example: "校园学习经验分享"
+        content:
+          type: string
+          description: 帖子正文内容
+          example: "今天整理了几条备考建议，大家可以交流一下。"
+        category:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: 帖子分类，可选
+          example: "学习心得"
 
     CreateCommentRequest:
       type: object

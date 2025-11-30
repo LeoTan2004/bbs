@@ -48,6 +48,12 @@ public class PostCommentController {
         return postCommentService.createComment(currentUser.getId(), request);
     }
 
+    @PostMapping("/direct")
+    public PostComment createCommentDirect(@Valid @RequestBody CreateCommentRequest request)
+            throws PostNotFoundException, PostStatusNotAllowedException, CommentNotFoundException {
+        return createComment(request);
+    }
+
     @PutMapping("/{commentId}")
     public PostComment updateComment(@PathVariable Integer commentId,
                                      @Valid @RequestBody UpdateCommentRequest request)

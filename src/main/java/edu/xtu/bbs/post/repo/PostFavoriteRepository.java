@@ -174,6 +174,13 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Inte
     List<Integer> findPostsBothLikedAndFavorite(@Param("userId") Integer userId);
 
     /**
+     * Find favorited posts for a user within a candidate id set
+     */
+    @Query("SELECT pf.post.id FROM PostFavorite pf WHERE pf.user.id = :userId AND pf.post.id IN :postIds")
+    List<Integer> findPostIdsByUserIdAndPostIdIn(@Param("userId") Integer userId,
+                                                 @Param("postIds") List<Integer> postIds);
+
+    /**
      * Find user's favorite posts by category
      *
      * @param userId   The user ID

@@ -39,12 +39,20 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
      * Find posts by status and category
      */
     Page<Post> findByStatusAndCategory(PostStatus status, String category, Pageable pageable);
-    
-    /**
-     * Search posts by title or content
-     */
-    Page<Post> findByStatusAndTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
-            PostStatus status, String titleKeyword, String contentKeyword, Pageable pageable);
+        /**
+         * Search posts by status and keyword in title or content
+         */
+        @Query("""
+                SELECT p FROM Post p
+                WHERE p.status = :status
+                    AND (
+                        LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                        OR LOWER(CAST(p.content AS string)) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    )
+                """)
+        Page<Post> searchByStatusAndKeyword(@Param("status") PostStatus status,
+                                                                                @Param("keyword") String keyword,
+                                                                                Pageable pageable);
     
     /**
      * Find posts by multiple post IDs

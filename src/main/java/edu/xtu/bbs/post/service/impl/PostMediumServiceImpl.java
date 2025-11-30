@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -32,31 +31,28 @@ public class PostMediumServiceImpl implements PostMediumService {
     @Override
     public List<Medium> getMediaByPostId(Integer postId) {
         log.debug("Getting media for post {}", postId);
-        
-        Post post = postRepository.findById(postId).orElse(null);
-        if (post == null) {
-            return new ArrayList<>();
-        }
-        
-        return post.getMedia() != null ? post.getMedia() : new ArrayList<>();
+
+        return postRepository.findByIdAndStatus(postId, PostStatus.PUBLISHED)
+                .map(Post::getMedia)
+                .map(ArrayList::new)
+                .orElseGet(ArrayList::new);
     }
 
     @Override
     public List<Medium> getMediaByPostId(Integer userId, Integer postId) {
         log.debug("Getting media for post {} with access control for user {}", postId, userId);
-        
+
         Post post = postRepository.findById(postId).orElse(null);
         if (post == null) {
             return new ArrayList<>();
         }
-        
-        // Check access permission
+
         if (!hasAccessPermission(userId, post)) {
             log.warn("User {} does not have access to post {}", userId, postId);
             return new ArrayList<>();
         }
-        
-        return post.getMedia() != null ? post.getMedia() : new ArrayList<>();
+
+        return post.getMedia() != null ? new ArrayList<>(post.getMedia()) : new ArrayList<>();
     }
 
     @Override
@@ -173,7 +169,8 @@ public class PostMediumServiceImpl implements PostMediumService {
             }
         }
 
-        log.info("Medium {} deleted from post {} by user {}", mediumId, postId, userId);        return mediaList;
+        log.info("Medium {} deleted from post {} by user {}", mediumId, postId, userId);
+        return mediaList;
     }
 
     @Override
@@ -229,25 +226,23 @@ public class PostMediumServiceImpl implements PostMediumService {
     @Override
     public Boolean hasAccessPermission(Integer userId, String mediumId) {
         log.debug("Checking access permission for user {} to medium {}", userId, mediumId);
-        
-        // Find post containing this medium
-        List<Post> posts = postRepository.findAll();
-        for (Post post : posts) {
-            if (post.getMedia() != null) {
-                for (Medium medium : post.getMedia()) {
-                    if (medium.getId().equals(mediumId)) {
-                        return hasAccessPermission(userId, post);
-                    }
-                }
-            }
+
+        Integer postId = extractPostIdFromMediumId(mediumId);
+        if (postId == null) {
+            log.warn("Cannot derive post id from medium {}", mediumId);
+            return false;
         }
-        
-        return false; // Medium not found or no access
+
+        return postRepository.findById(postId)
+                .filter(post -> post.getMedia() != null && post.getMedia().stream()
+                        .anyMatch(medium -> mediumId.equals(medium.getId())))
+                .map(post -> hasAccessPermission(userId, post))
+                .orElse(false);
     }
 
     private boolean hasAccessPermission(Integer userId, Post post) {
         // Owner always has access
-        if (post.getAuthor().getId().equals(userId)) {
+        if (post.getAuthor() != null && post.getAuthor().getId() != null && post.getAuthor().getId().equals(userId)) {
             return true;
         }
         
@@ -276,10 +271,6 @@ public class PostMediumServiceImpl implements PostMediumService {
             throw new TooManyMediaException(post.getId(), currentFileCount, 
                     mediaConfiguration.getMaxFiles());
         }
-    }
-
-    private String generateMediumId() {
-        return UUID.randomUUID().toString();
     }
 
     /**
@@ -402,6 +393,25 @@ public class PostMediumServiceImpl implements PostMediumService {
             return null;
         } catch (Exception e) {
             log.error("Error extracting auto increment ID from medium: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private Integer extractPostIdFromMediumId(String mediumId) {
+        if (mediumId == null || mediumId.isBlank()) {
+            return null;
+        }
+
+        String candidate = mediumId;
+        int underscoreIndex = mediumId.indexOf('_');
+        if (underscoreIndex > 0) {
+            candidate = mediumId.substring(0, underscoreIndex);
+        }
+
+        try {
+            return Integer.valueOf(candidate);
+        } catch (NumberFormatException ex) {
+            log.warn("Medium id {} does not contain a valid post id", mediumId);
             return null;
         }
     }

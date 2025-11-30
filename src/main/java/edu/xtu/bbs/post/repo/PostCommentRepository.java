@@ -4,6 +4,7 @@ import edu.xtu.bbs.post.model.CommentStatus;
 import edu.xtu.bbs.post.model.PostComment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -98,6 +99,7 @@ public interface PostCommentRepository extends JpaRepository<PostComment, Intege
      * @param pageable pagination information
      * @return paginated published comments
      */
+    @EntityGraph(attributePaths = {"user", "post"})
     Page<PostComment> findByPostIdAndParentPostIdIsNullAndStatus(Integer postId, CommentStatus status, Pageable pageable);
     
     /**
@@ -108,6 +110,7 @@ public interface PostCommentRepository extends JpaRepository<PostComment, Intege
      * @param pageable pagination information
      * @return paginated published reply comments
      */
+    @EntityGraph(attributePaths = {"user", "post"})
     Page<PostComment> findByParentPostIdAndStatus(Integer parentPostId, CommentStatus status, Pageable pageable);
     
     /**
@@ -118,6 +121,7 @@ public interface PostCommentRepository extends JpaRepository<PostComment, Intege
      * @param pageable pagination information
      * @return paginated published comments
      */
+    @EntityGraph(attributePaths = {"user", "post"})
     Page<PostComment> findByUserIdAndStatus(Integer userId, CommentStatus status, Pageable pageable);
     
     /**

@@ -1,5 +1,6 @@
 package edu.xtu.bbs.post.controller;
 
+import edu.xtu.bbs.post.dto.CreatePostRequest;
 import edu.xtu.bbs.post.dto.DraftContentEditor;
 import edu.xtu.bbs.post.exception.*;
 import edu.xtu.bbs.post.model.Post;
@@ -62,6 +63,25 @@ public class PostController {
         }
 
         return postService.publishDraft(currentUser.getId(), draftId);
+    }
+
+    // endregion
+
+    // region Direct Publish Operations
+
+    @PostMapping
+    public Post createPost(@Valid @RequestBody CreatePostRequest request)
+            throws SensitiveContentException {
+        if (request == null) {
+            throw new IllegalArgumentException("Invalid post creation request");
+        }
+
+        final User currentUser = authenticationService.getCurrentUser();
+        if (currentUser == null) {
+            throw new SecurityException("Authentication required");
+        }
+
+        return postService.createPost(currentUser.getId(), request);
     }
 
     // endregion

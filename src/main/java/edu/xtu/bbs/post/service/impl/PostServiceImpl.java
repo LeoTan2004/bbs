@@ -1,5 +1,6 @@
 package edu.xtu.bbs.post.service.impl;
 
+import edu.xtu.bbs.post.dto.CreatePostRequest;
 import edu.xtu.bbs.post.dto.DraftContentEditor;
 import edu.xtu.bbs.post.exception.*;
 import edu.xtu.bbs.post.model.Post;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.Optional;
 
 @Slf4j
@@ -149,6 +151,56 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
+    public Post createPost(Integer userId, CreatePostRequest request)
+            throws SensitiveContentException {
+
+        log.debug("Creating direct post for user {}", userId);
+
+        if (request == null) {
+            throw new IllegalArgumentException("Invalid post creation request");
+        }
+
+        if (!StringUtils.hasText(request.title())) {
+            throw new IllegalArgumentException("Title cannot be empty");
+        }
+
+        if (!StringUtils.hasText(request.content())) {
+            throw new IllegalArgumentException("Content cannot be empty");
+        }
+
+        checkSensitiveContent(request.title(), request.content());
+
+        Post post = new Post();
+        User author = new User();
+        author.setId(userId);
+        post.setAuthor(author);
+        post.setTitle(request.title());
+        post.setContent(request.content());
+        post.setStatus(PostStatus.PUBLISHED);
+        post.setPossiblySensitive(Boolean.FALSE);
+        if (StringUtils.hasText(request.category())) {
+            post.setCategory(request.category());
+        } else {
+            post.setCategory(null);
+        }
+        post.setMedia(Collections.emptyList());
+
+        Post savedPost = postRepository.save(post);
+
+        PublicMatric publicMatric = new PublicMatric();
+        publicMatric.setPost(savedPost);
+        publicMatric.setComments(0);
+        publicMatric.setLikes(0);
+        publicMatric.setFavorites(0);
+        publicMatricRepository.save(publicMatric);
+
+        log.info("Published post {} directly for user {}", savedPost.getId(), userId);
+
+        return savedPost;
+    }
+
+    @Override
     public Page<Post> getPublishedPostsByUser(Integer userId, Pageable pageable) {
         log.debug("Getting published posts for user: {}", userId);
         return postRepository.findByAuthorIdAndStatus(userId, PostStatus.PUBLISHED, pageable);
@@ -176,8 +228,7 @@ public class PostServiceImpl implements PostService {
         if (!StringUtils.hasText(keyword)) {
             return postRepository.findByStatus(PostStatus.PUBLISHED, pageable);
         }
-        return postRepository.findByStatusAndTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
-                PostStatus.PUBLISHED, keyword, keyword, pageable);
+        return postRepository.searchByStatusAndKeyword(PostStatus.PUBLISHED, keyword, pageable);
     }
 
     @Override
