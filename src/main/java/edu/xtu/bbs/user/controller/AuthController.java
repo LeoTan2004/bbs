@@ -11,6 +11,7 @@ import edu.xtu.bbs.verification.VerificationRequestNotFoundException;
 import edu.xtu.bbs.verification.VerificationScopeIncorrectException;
 import edu.xtu.bbs.verification.VerificationTooFrequentException;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,7 +34,7 @@ public class AuthController {
     }
 
     @PostMapping("/register/send-code")
-    public AuthTokenResponse registerByEmail(@Email String email) throws EmailAlreadyExistsException {
+    public AuthTokenResponse registerByEmail(@NotBlank @Email String email) throws EmailAlreadyExistsException {
         String token = authenticationService.bindEmailVerify(email);
         return new AuthTokenResponse(token);
     }
@@ -64,13 +65,13 @@ public class AuthController {
     }
 
     @PostMapping("/login/send-code")
-    public AuthTokenResponse loginByEmail(@Email String email) throws EmailNotFoundException {
+    public AuthTokenResponse loginByEmail(@NotBlank @Email String email) throws EmailNotFoundException {
         String token = authenticationService.loginEmailVerify(email);
         return new AuthTokenResponse(token);
     }
 
     @PostMapping("/reset-password/send-code")
-    public AuthTokenResponse resetPasswordByEmail(@Email String email) throws EmailNotFoundException {
+    public AuthTokenResponse resetPasswordByEmail(@NotBlank @Email String email) throws EmailNotFoundException {
         String token = authenticationService.preUpdatePassword(email);
         return new AuthTokenResponse(token);
     }

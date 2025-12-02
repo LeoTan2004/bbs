@@ -808,6 +808,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_failed:
+                  summary: 参数校验失败
+                  value:
+                    code: 10001
+                    message: "Invalid parameters"
+                    data:
+                      title: "标题不能为空"
+                sensitive_content:
+                  summary: 内容包含敏感词
+                  value:
+                    code: 10001
+                    message: "Invalid parameters"
+                    data:
+                      content: "Content contains prohibited expressions."
         '401':
           description: 未登录
           content:
@@ -2227,6 +2242,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_failed:
+                  summary: 参数校验失败
+                  value:
+                    code: 10001
+                    message: "Invalid parameters"
+                    data:
+                      postId: "帖子ID不能为空"
+                sensitive_content:
+                  summary: 内容包含敏感词
+                  value:
+                    code: 10001
+                    message: "Invalid parameters"
+                    data:
+                      content: "Content contains prohibited expressions."
         '401':
           description: 未登录
           content:
@@ -2276,6 +2306,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_failed:
+                  summary: 参数校验失败
+                  value:
+                    code: 10001
+                    message: "Invalid parameters"
+                    data:
+                      postId: "帖子ID不能为空"
+                sensitive_content:
+                  summary: 内容包含敏感词
+                  value:
+                    code: 10001
+                    message: "Invalid parameters"
+                    data:
+                      content: "Content contains prohibited expressions."
         '401':
           description: 未登录
           content:
