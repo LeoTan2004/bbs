@@ -13,6 +13,10 @@ COPY mvnw pom.xml ./
 # 2. Fix line endings and make mvnw executable
 RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc g++ make \
+        && rm -rf /var/lib/apt/lists/*
+
 # If a `MAVEN_SETTING_FILE` build-arg is provided pointing to a
 # Maven `settings.xml` file, copy it to `/root/.m2/settings.xml`
 RUN if [ -n "${MAVEN_SETTING_FILE:-}" ]; then \
