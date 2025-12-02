@@ -4516,9 +4516,9 @@ components:
           format: date-time
           description: 举报更新时间
           example: "2024-05-31T10:15:00Z"
-          example:
-            postId: 2001
-            commentId: 3001
+      example:
+        postId: 2001
+        commentId: 3001
         read:
           type: boolean
           description: 是否已读
