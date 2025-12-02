@@ -1,5 +1,6 @@
 package edu.xtu.bbs.user.service;
 
+import edu.xtu.bbs.common.validation.ContentAuditService;
 import edu.xtu.bbs.user.dto.UpdateProfileRequest;
 import edu.xtu.bbs.user.exception.UserNotFoundException;
 import edu.xtu.bbs.user.model.Role;
@@ -34,6 +35,9 @@ class UserServiceTest {
 
     @Mock
     private UserBinderService userBinderService;
+
+    @Mock
+    private ContentAuditService contentAuditService;
 
     @InjectMocks
     private UserService userService;
@@ -226,6 +230,7 @@ class UserServiceTest {
                 "new-profile-slug",
                 userId
         );
+        verify(contentAuditService).validate(request);
     }
 
     @Test
@@ -259,6 +264,7 @@ class UserServiceTest {
                 "new-profile-slug",
                 userId
         );
+        verify(contentAuditService).validate(request);
     }
 
     @Test
@@ -280,6 +286,7 @@ class UserServiceTest {
 
         verify(userRepository).findById(userId);
         verify(userRepository, never()).updateProfileById(any(), any(), any(), any());
+        verifyNoInteractions(contentAuditService);
     }
 
     @Test
@@ -299,6 +306,7 @@ class UserServiceTest {
         assertThat(result).isTrue();
         verify(userRepository).findById(userId);
         verify(userRepository).updateProfileById(null, null, null, userId);
+        verify(contentAuditService).validate(request);
     }
 
     @Test
@@ -318,5 +326,6 @@ class UserServiceTest {
         assertThat(result).isTrue();
         verify(userRepository).findById(userId);
         verify(userRepository).updateProfileById("", "", "", userId);
+        verify(contentAuditService).validate(request);
     }
 }

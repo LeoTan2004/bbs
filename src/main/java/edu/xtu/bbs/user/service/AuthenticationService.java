@@ -1,5 +1,6 @@
 package edu.xtu.bbs.user.service;
 
+import edu.xtu.bbs.common.validation.ContentAuditService;
 import edu.xtu.bbs.user.dto.CreateUserRequest;
 import edu.xtu.bbs.user.dto.WeChatRegisterRequest;
 import edu.xtu.bbs.user.exception.*;
@@ -39,10 +40,12 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final UserBinderService userBinderService;
     private final WeChatAppService weChatAppService;
+    private final ContentAuditService contentAuditService;
 
     public AuthenticationService(UserService userService, VerificationService verificationService,
                                  AvatarService avatarService, PasswordEncoder passwordEncoder, UserRepository userRepository,
-                                 UserBinderService userBinderService, WeChatAppService weChatAppService) {
+                                 UserBinderService userBinderService, WeChatAppService weChatAppService,
+                                 ContentAuditService contentAuditService) {
         this.userService = userService;
         this.verificationService = verificationService;
         this.avatarService = avatarService;
@@ -50,6 +53,7 @@ public class AuthenticationService {
         this.userRepository = userRepository;
         this.userBinderService = userBinderService;
         this.weChatAppService = weChatAppService;
+        this.contentAuditService = contentAuditService;
     }
 
     /**
@@ -117,6 +121,8 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Invalid registration request");
         }
 
+        contentAuditService.validate(request);
+
         if (userService.existsByUsername(request.username())) {
             throw new UsernameOccupiedException(request.username());
         }
@@ -167,6 +173,8 @@ public class AuthenticationService {
         if (request == null) {
             throw new IllegalArgumentException("Invalid WeChat registration request");
         }
+
+        contentAuditService.validate(request);
 
         // Check if username already exists
         if (userService.existsByUsername(request.username())) {

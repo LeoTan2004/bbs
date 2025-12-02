@@ -1,5 +1,6 @@
 package edu.xtu.bbs.user.service;
 
+import edu.xtu.bbs.common.validation.ContentAuditService;
 import edu.xtu.bbs.user.dto.CreateUserRequest;
 import edu.xtu.bbs.user.exception.EmailAlreadyExistsException;
 import edu.xtu.bbs.user.exception.EmailNotFoundException;
@@ -48,6 +49,9 @@ class AuthenticationServiceTest {
 
     @Mock
     private UserBinderService userBinderService;
+
+        @Mock
+        private ContentAuditService contentAuditService;
 
     @InjectMocks
     private AuthenticationService authenticationService;
@@ -199,6 +203,7 @@ class AuthenticationServiceTest {
         verify(passwordEncoder).encode(createUserRequest.password());
         verify(avatarService).generateAvatarUrl(createUserRequest.username());
         verify(userBinderService).bindEmail(result, createUserRequest.email());
+        verify(contentAuditService).validate(createUserRequest);
     }
 
     @Test
@@ -212,6 +217,7 @@ class AuthenticationServiceTest {
                 .isInstanceOf(UsernameOccupiedException.class);
 
         verify(userService).existsByUsername(createUserRequest.username());
+        verify(contentAuditService).validate(createUserRequest);
         verify(userService, never()).existsByEmail(anyString());
         verifyNoInteractions(verificationService);
         verifyNoInteractions(userRepository);
@@ -230,6 +236,7 @@ class AuthenticationServiceTest {
 
         verify(userService).existsByUsername(createUserRequest.username());
         verify(userService).existsByEmail(createUserRequest.email());
+                verify(contentAuditService).validate(createUserRequest);
         verifyNoInteractions(verificationService);
         verifyNoInteractions(userRepository);
     }
@@ -249,6 +256,7 @@ class AuthenticationServiceTest {
         verify(userService).existsByUsername(createUserRequest.username());
         verify(userService).existsByEmail(createUserRequest.email());
         verify(verificationService).verifyCode(verificationParam);
+                verify(contentAuditService).validate(createUserRequest);
         verifyNoInteractions(userRepository);
     }
 
@@ -272,6 +280,7 @@ class AuthenticationServiceTest {
 
         verify(userService).existsByUsername(createUserRequest.username());
         verify(userService).existsByEmail(createUserRequest.email());
+                verify(contentAuditService).validate(createUserRequest);
         verifyNoInteractions(verificationService);
         verifyNoInteractions(userRepository);
     }
@@ -296,6 +305,7 @@ class AuthenticationServiceTest {
 
         verify(userService).existsByUsername(createUserRequest.username());
         verify(userService).existsByEmail(createUserRequest.email());
+                verify(contentAuditService).validate(createUserRequest);
         verifyNoInteractions(verificationService);
         verifyNoInteractions(userRepository);
     }

@@ -1,5 +1,6 @@
 package edu.xtu.bbs.post.dto;
 
+import edu.xtu.bbs.common.validation.ContentAudit;
 import jakarta.validation.constraints.NotNull;
 
 /**
@@ -12,7 +13,7 @@ import jakarta.validation.constraints.NotNull;
 public record DraftCommentEditor(
     @NotNull Integer postId,
     Integer parentCommentId,  // null for top-level comment, non-null for reply
-    String content
+    @ContentAudit String content
 ) {
     
     /**

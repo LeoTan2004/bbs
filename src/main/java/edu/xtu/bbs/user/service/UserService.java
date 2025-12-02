@@ -1,5 +1,6 @@
 package edu.xtu.bbs.user.service;
 
+import edu.xtu.bbs.common.validation.ContentAuditService;
 import edu.xtu.bbs.user.dto.UpdateProfileRequest;
 import edu.xtu.bbs.user.exception.UserNotFoundException;
 import edu.xtu.bbs.user.model.User;
@@ -19,10 +20,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserBinderService userBinderService;
+    private final ContentAuditService contentAuditService;
 
-    public UserService(UserRepository userRepository, UserBinderService userBinderService) {
+    public UserService(UserRepository userRepository, UserBinderService userBinderService,
+                       ContentAuditService contentAuditService) {
         this.userRepository = userRepository;
         this.userBinderService = userBinderService;
+        this.contentAuditService = contentAuditService;
     }
 
     // Query Method
@@ -61,6 +65,8 @@ public class UserService {
             throws UserNotFoundException {
 
         getUserById(userId);
+
+        contentAuditService.validate(profile);
 
         int updatedRows = userRepository.updateProfileById(
                 profile.nickname(),

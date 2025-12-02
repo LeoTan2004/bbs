@@ -3,6 +3,7 @@ package edu.xtu.bbs.post.config;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.unit.DataSize;
@@ -19,6 +20,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "bbs.oss.post-media")
 @Component
 @Data
+@Validated
 public class MediaConfiguration {
 
     /**

@@ -11,6 +11,7 @@ import edu.xtu.bbs.user.vo.AvatarUploadVo;
 import edu.xtu.bbs.user.vo.UploadRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequestMapping("/user")
+@Validated
 public class UserController {
     private final AuthenticationService authenticationService;
     private final UserService userService;

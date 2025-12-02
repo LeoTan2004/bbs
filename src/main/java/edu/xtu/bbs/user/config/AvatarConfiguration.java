@@ -2,6 +2,7 @@ package edu.xtu.bbs.user.config;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.unit.DataSize;
@@ -12,6 +13,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "bbs.oss.avatar")
 @Component
 @Data
+@Validated
 public class AvatarConfiguration {
 
     @NotBlank

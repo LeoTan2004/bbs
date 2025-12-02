@@ -2,6 +2,7 @@ package edu.xtu.bbs.post.config;
 
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "bbs.post.media-limits")
 @Data
+@Validated
 public class PostMediaLimitConfiguration {
 
     /**
