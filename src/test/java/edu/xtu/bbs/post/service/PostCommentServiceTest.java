@@ -1,5 +1,7 @@
 package edu.xtu.bbs.post.service;
 
+import edu.xtu.bbs.notification.dto.NotificationCreateRequest;
+import edu.xtu.bbs.notification.service.NotificationService;
 import edu.xtu.bbs.post.dto.CommentResponse;
 import edu.xtu.bbs.post.dto.CreateCommentRequest;
 import edu.xtu.bbs.post.dto.UpdateCommentRequest;
@@ -31,6 +33,8 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Optional;
 
+import org.mockito.ArgumentCaptor;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -54,6 +58,9 @@ class PostCommentServiceTest {
     @Mock
     private CommentLikeService commentLikeService;
 
+    @Mock
+    private NotificationService notificationService;
+
     private PostCommentService commentService;
 
     private User testUser;
@@ -62,7 +69,7 @@ class PostCommentServiceTest {
 
     @BeforeEach
     void setUp() {
-        commentService = new PostCommentServiceImpl(commentRepository, postRepository, userRepository, publicMatricRepository, commentLikeService);
+        commentService = new PostCommentServiceImpl(commentRepository, postRepository, userRepository, publicMatricRepository, commentLikeService, notificationService);
 
         // Setup test data
         testUser = new User();
@@ -70,9 +77,14 @@ class PostCommentServiceTest {
         testUser.setUsername("testuser");
         testUser.setAvatarUrl("avatar.jpg");
 
+        User postAuthor = new User();
+        postAuthor.setId(2);
+        postAuthor.setUsername("author");
+
         testPost = new Post();
         testPost.setId(1);
         testPost.setStatus(PostStatus.PUBLISHED);
+        testPost.setAuthor(postAuthor);
 
         testComment = new PostComment();
         testComment.setId(1);
@@ -85,6 +97,7 @@ class PostCommentServiceTest {
         testComment.setUpdatedAt(Instant.now());
         testComment.setMedia(Collections.emptyList());
         testComment.setStatus(CommentStatus.PUBLISHED);
+
     }
 
     @Test
@@ -107,7 +120,61 @@ class PostCommentServiceTest {
         assertEquals(1, result.getId());
         assertEquals("Test comment", result.getContent());
         verify(commentRepository).save(any(PostComment.class));
+        verify(notificationService, times(1)).create(any(NotificationCreateRequest.class));
     }
+
+        @Test
+        void testCreateComment_ReplySendsReplyNotification() {
+        // Given
+        User parentUser = new User();
+        parentUser.setId(3);
+        parentUser.setUsername("parent");
+
+        PostComment parentComment = new PostComment();
+        parentComment.setId(10);
+        parentComment.setPost(testPost);
+        parentComment.setUser(parentUser);
+        parentComment.setContent("Parent comment");
+        parentComment.setStatus(CommentStatus.PUBLISHED);
+
+        CreateCommentRequest request = new CreateCommentRequest(1, "Reply content", parentComment.getId());
+
+        when(postRepository.findByIdAndStatus(1, PostStatus.PUBLISHED))
+            .thenReturn(Optional.of(testPost));
+        when(commentRepository.findById(parentComment.getId()))
+            .thenReturn(Optional.of(parentComment));
+        when(userRepository.findById(1)).thenReturn(Optional.of(testUser));
+
+        PostComment savedReply = new PostComment();
+        savedReply.setId(2);
+        savedReply.setPost(testPost);
+        savedReply.setUser(testUser);
+        savedReply.setParentPostId(parentComment.getId());
+        savedReply.setContent("Reply content");
+        savedReply.setStatus(CommentStatus.PUBLISHED);
+        savedReply.setComments(0);
+        savedReply.setLikes(0);
+        savedReply.setCreatedAt(Instant.now());
+        savedReply.setUpdatedAt(Instant.now());
+        savedReply.setMedia(Collections.emptyList());
+
+        when(commentRepository.save(any(PostComment.class)))
+            .thenReturn(savedReply);
+
+        // When
+        commentService.createComment(1, request);
+
+        // Then
+        ArgumentCaptor<NotificationCreateRequest> captor = ArgumentCaptor.forClass(NotificationCreateRequest.class);
+        verify(notificationService, times(2)).create(captor.capture());
+
+        assertEquals(2, captor.getAllValues().size());
+        NotificationCreateRequest postNotification = captor.getAllValues().get(0);
+        NotificationCreateRequest replyNotification = captor.getAllValues().get(1);
+
+        assertEquals(testPost.getAuthor().getId(), postNotification.targetUserId());
+        assertEquals(parentUser.getId(), replyNotification.targetUserId());
+        }
 
     @Test
     void testCreateComment_PostNotFound() {

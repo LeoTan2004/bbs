@@ -1,5 +1,9 @@
 package edu.xtu.bbs.post.service.impl;
 
+import edu.xtu.bbs.notification.dto.NotificationCreateRequest;
+import edu.xtu.bbs.notification.model.NotificationPriority;
+import edu.xtu.bbs.notification.model.NotificationType;
+import edu.xtu.bbs.notification.service.NotificationService;
 import edu.xtu.bbs.post.exception.PostNotFoundException;
 import edu.xtu.bbs.post.exception.PostStatusNotAllowedException;
 import edu.xtu.bbs.post.model.Post;
@@ -19,6 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -30,6 +37,10 @@ public class PostLikeServiceImpl implements PostLikeService {
     private final PostLikeRepository postLikeRepository;
     private final PostRepository postRepository;
     private final PublicMatricRepository publicMatricRepository;
+    private final NotificationService notificationService;
+
+    private static final int NOTIFICATION_TITLE_LIMIT = 255;
+    private static final int CONTEXT_TITLE_LIMIT = 120;
 
     @Override
     @Transactional
@@ -69,6 +80,8 @@ public class PostLikeServiceImpl implements PostLikeService {
         
         // Update public metrics
         updateLikeCount(postId);
+
+        dispatchNotificationForPostLike(userId, post);
         
         log.info("User {} liked post {}", userId, postId);
         return true; // Successfully liked
@@ -131,6 +144,50 @@ public class PostLikeServiceImpl implements PostLikeService {
     public Integer countPostLikedByUsers(Integer postId) {
         log.debug("Counting likes for post {}", postId);
         return Math.toIntExact(postLikeRepository.countByPostId(postId));
+    }
+
+    private void dispatchNotificationForPostLike(Integer likerId, Post post) {
+        if (post.getAuthor() == null || Objects.equals(post.getAuthor().getId(), likerId)) {
+            return;
+        }
+
+        Map<String, Object> context = buildLikeContext(post);
+        notificationService.create(new NotificationCreateRequest(
+                post.getAuthor().getId(),
+                likerId,
+                NotificationType.POST_LIKED,
+                NotificationPriority.NORMAL,
+                truncate("你的帖子《" + post.getTitle() + "》收获新的点赞", NOTIFICATION_TITLE_LIMIT),
+                null,
+                "/posts/" + post.getId(),
+                "POST",
+                String.valueOf(post.getId()),
+                null,
+                context
+        ));
+    }
+
+    private Map<String, Object> buildLikeContext(Post post) {
+        Map<String, Object> context = new HashMap<>();
+        putIfNotNull(context, "postId", post.getId());
+        putIfNotNull(context, "postTitle", truncate(post.getTitle(), CONTEXT_TITLE_LIMIT));
+        return context;
+    }
+
+    private void putIfNotNull(Map<String, Object> context, String key, Object value) {
+        if (value != null) {
+            context.put(key, value);
+        }
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null) {
+            return null;
+        }
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 
     private void updateLikeCount(Integer postId) {

@@ -1,5 +1,6 @@
 package edu.xtu.bbs.post.service.impl;
 
+import edu.xtu.bbs.notification.service.NotificationService;
 import edu.xtu.bbs.post.exception.CommentNotFoundException;
 import edu.xtu.bbs.post.repo.PostCommentRepository;
 import edu.xtu.bbs.post.service.CommentLikeService;
@@ -27,6 +28,9 @@ class PostCommentServiceCommentLikeIntegrationTest {
 
     @Mock
     private CommentLikeService commentLikeService;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private PostCommentServiceImpl postCommentService;

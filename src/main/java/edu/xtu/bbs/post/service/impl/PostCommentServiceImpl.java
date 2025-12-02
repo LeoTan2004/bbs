@@ -1,5 +1,9 @@
 package edu.xtu.bbs.post.service.impl;
 
+import edu.xtu.bbs.notification.dto.NotificationCreateRequest;
+import edu.xtu.bbs.notification.model.NotificationPriority;
+import edu.xtu.bbs.notification.model.NotificationType;
+import edu.xtu.bbs.notification.service.NotificationService;
 import edu.xtu.bbs.post.dto.CommentResponse;
 import edu.xtu.bbs.post.dto.CreateCommentRequest;
 import edu.xtu.bbs.post.dto.DraftCommentEditor;
@@ -36,8 +40,10 @@ import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -50,6 +56,11 @@ public class PostCommentServiceImpl implements PostCommentService {
     private final UserRepository userRepository;
     private final PublicMatricRepository publicMatricRepository;
     private final CommentLikeService commentLikeService;
+    private final NotificationService notificationService;
+
+    private static final int NOTIFICATION_TITLE_LIMIT = 255;
+    private static final int NOTIFICATION_SNIPPET_LIMIT = 512;
+    private static final int CONTEXT_PREVIEW_LIMIT = 120;
 
     // region Comment CRUD Operations
 
@@ -73,13 +84,12 @@ public class PostCommentServiceImpl implements PostCommentService {
                 });
 
         // Verify parent comment exists if specified
+        PostComment parentComment = null;
         if (request.parentCommentId() != null) {
-            Optional<PostComment> parentComment = commentRepository.findById(request.parentCommentId());
-            if (parentComment.isEmpty()) {
-                throw new CommentNotFoundException(request.parentCommentId());
-            }
+            parentComment = commentRepository.findById(request.parentCommentId())
+                    .orElseThrow(() -> new CommentNotFoundException(request.parentCommentId()));
             // Verify parent comment belongs to the same post
-            if (!Objects.equals(parentComment.get().getPost().getId(), request.postId())) {
+            if (!Objects.equals(parentComment.getPost().getId(), request.postId())) {
                 throw new CommentNotFoundException("Parent comment does not belong to the specified post");
             }
         }
@@ -110,6 +120,8 @@ public class PostCommentServiceImpl implements PostCommentService {
 
         // Update post's comment count
         updatePostCommentCount(request.postId());
+
+        dispatchNotificationsForNewComment(user, post, comment, parentComment);
 
         log.info("User {} created comment {} for post {}", userId, comment.getId(), request.postId());
         
@@ -319,6 +331,81 @@ public class PostCommentServiceImpl implements PostCommentService {
     // endregion
 
     // region Private Helper Methods
+
+    private void dispatchNotificationsForNewComment(User commenter, Post post, PostComment comment, PostComment parentComment) {
+        if (post.getAuthor() != null && !Objects.equals(post.getAuthor().getId(), commenter.getId())) {
+            Map<String, Object> context = buildCommentContext(post, comment, parentComment);
+            notificationService.create(new NotificationCreateRequest(
+                    post.getAuthor().getId(),
+                    commenter.getId(),
+                    NotificationType.POST_COMMENTED,
+                    NotificationPriority.NORMAL,
+                    truncate("你的帖子《" + post.getTitle() + "》收到新评论", NOTIFICATION_TITLE_LIMIT),
+                    comment.getContent(),
+                    "/posts/" + post.getId(),
+                    "POST",
+                    String.valueOf(post.getId()),
+                    truncate(comment.getContent(), NOTIFICATION_SNIPPET_LIMIT),
+                    context
+            ));
+        }
+
+        if (parentComment != null && parentComment.getUser() != null
+                && !Objects.equals(parentComment.getUser().getId(), commenter.getId())
+                && !Objects.equals(parentComment.getUser().getId(), post.getAuthor() != null ? post.getAuthor().getId() : null)) {
+            Map<String, Object> context = buildReplyContext(post, comment, parentComment);
+            notificationService.create(new NotificationCreateRequest(
+                    parentComment.getUser().getId(),
+                    commenter.getId(),
+                    NotificationType.COMMENT_REPLIED,
+                    NotificationPriority.NORMAL,
+                    truncate("你的评论收到新回复", NOTIFICATION_TITLE_LIMIT),
+                    comment.getContent(),
+                    "/posts/" + post.getId(),
+                    "COMMENT",
+                    String.valueOf(parentComment.getId()),
+                    truncate(comment.getContent(), NOTIFICATION_SNIPPET_LIMIT),
+                    context
+            ));
+        }
+    }
+
+    private Map<String, Object> buildCommentContext(Post post, PostComment comment, PostComment parentComment) {
+        Map<String, Object> context = new HashMap<>();
+        putIfNotNull(context, "postId", post.getId());
+        putIfNotNull(context, "postTitle", truncate(post.getTitle(), CONTEXT_PREVIEW_LIMIT));
+        putIfNotNull(context, "commentId", comment.getId());
+        putIfNotNull(context, "commentPreview", truncate(comment.getContent(), CONTEXT_PREVIEW_LIMIT));
+        if (parentComment != null) {
+            putIfNotNull(context, "parentCommentId", parentComment.getId());
+        }
+        return context;
+    }
+
+    private Map<String, Object> buildReplyContext(Post post, PostComment comment, PostComment parentComment) {
+        Map<String, Object> context = buildCommentContext(post, comment, parentComment);
+        putIfNotNull(context, "parentCommentPreview", truncate(parentComment.getContent(), CONTEXT_PREVIEW_LIMIT));
+        if (parentComment.getUser() != null) {
+            putIfNotNull(context, "parentCommentAuthorId", parentComment.getUser().getId());
+        }
+        return context;
+    }
+
+    private void putIfNotNull(Map<String, Object> context, String key, Object value) {
+        if (value != null) {
+            context.put(key, value);
+        }
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null) {
+            return null;
+        }
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
+    }
 
     private CommentResponse convertToCommentResponse(@NotNull PostComment comment, Integer currentUserId) {
         // Check if current user has liked this comment
