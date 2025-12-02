@@ -48,6 +48,11 @@ public enum ResponseCode {
     NOTIFICATION_NOT_FOUND(50001, "Notification not found"),
     MESSAGE_SEND_FAIL(50002, "Message send failed"),
 
+    // ==================== Report Module (6xxxx) ====================
+    REPORT_NOT_FOUND(60001, "Report not found"),
+    REPORT_TARGET_NOT_FOUND(60002, "Reported content not found"),
+    REPORT_ALREADY_RESOLVED(60003, "Report already processed"),
+
     // ==================== System Module (9xxxx) ====================
     SYSTEM_ERROR(90001, "Internal server error"),
     SERVICE_UNAVAILABLE(90002, "Service unavailable"),

@@ -212,6 +212,288 @@ paths:
                     code: 20003
                     message: "User already exists"
                     data: null
+
+  /reports:
+    post:
+      tags:
+        - 举报
+      summary: 提交举报
+      description: |
+        提交针对用户、帖子或评论的举报。举报内容仅举报者本人可见。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReportRequest'
+      responses:
+        '200':
+          description: 举报提交成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+              example:
+                code: 10000
+                message: "Success"
+                data:
+                  id: 5001
+                  status: PENDING
+                  target:
+                    type: POST
+                    id: 2104
+                    title: "考试心得分享"
+                    snippet: "帖子中包含外部推广链接"
+                  reason: "发布广告内容"
+                  description: "该帖子多次出现外部广告链接，影响正常讨论"
+                  result: null
+                  resultNotified: false
+                  resolvedAt: null
+                  createdAt: "2024-06-01T10:15:00Z"
+                  updatedAt: "2024-06-01T10:15:00Z"
+        '400':
+          description: 参数错误或举报对象不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - 举报
+      summary: 查询我的举报记录
+      description: |
+        分页查询当前登录用户提交的举报记录，按创建时间倒序返回。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: 页码，从0开始
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: 每页数量
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 排序字段，默认 `createdAt,desc`
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportPageResponse'
+              example:
+                code: 10000
+                message: "Success"
+                data:
+                  content:
+                    - id: 5001
+                      status: RESOLVED
+                      target:
+                        type: POST
+                        id: 2104
+                        title: "考试心得分享"
+                        snippet: "帖子中包含外部推广链接"
+                      reason: "发布广告内容"
+                      description: "该帖子多次出现外部广告链接，影响正常讨论"
+                      result: "已确认违规，帖子已下线处理"
+                      resultNotified: true
+                      resolvedAt: "2024-06-02T09:30:00Z"
+                      createdAt: "2024-06-01T10:15:00Z"
+                      updatedAt: "2024-06-02T09:30:00Z"
+                    - id: 5000
+                      status: PENDING
+                      target:
+                        type: COMMENT
+                        id: 3201
+                        title: "明年考研交流"
+                        snippet: "评论中反复粘贴广告链接"
+                      reason: "恶意广告"
+                      description: "评论区多次粘贴同一培训机构的推广"
+                      result: null
+                      resultNotified: false
+                      resolvedAt: null
+                      createdAt: "2024-05-30T08:20:00Z"
+                      updatedAt: "2024-05-30T08:20:00Z"
+                  pageable:
+                    sort:
+                      sorted: true
+                      unsorted: false
+                      empty: false
+                    pageNumber: 0
+                    pageSize: 10
+                    offset: 0
+                    paged: true
+                    unpaged: false
+                  totalElements: 2
+                  totalPages: 1
+                  size: 10
+                  number: 0
+                  sort:
+                    sorted: true
+                    unsorted: false
+                    empty: false
+                  numberOfElements: 2
+                  first: true
+                  last: true
+                  empty: false
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/{reportId}:
+    get:
+      tags:
+        - 举报
+      summary: 查看举报详情
+      description: |
+        获取当前登录用户的举报详情，仅能查看本人提交的举报。
+        
+        **权限要求：** 需要登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: 举报ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+              example:
+                code: 10000
+                message: "Success"
+                data:
+                  id: 5001
+                  status: RESOLVED
+                  target:
+                    type: POST
+                    id: 2104
+                    title: "考试心得分享"
+                    snippet: "帖子中包含外部推广链接"
+                  reason: "发布广告内容"
+                  description: "该帖子多次出现外部广告链接，影响正常讨论"
+                  result: "已确认违规，帖子已下线处理"
+                  resultNotified: true
+                  resolvedAt: "2024-06-02T09:30:00Z"
+                  createdAt: "2024-06-01T10:15:00Z"
+                  updatedAt: "2024-06-02T09:30:00Z"
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 举报不存在或无权访问
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/{reportId}/result:
+    patch:
+      tags:
+        - 举报
+      summary: 发布举报处理结果
+      description: |
+        管理员在审核完举报后，调用此接口更新举报状态并向举报者发送通知。
+        
+        **权限要求：** 需要管理员登录
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: 举报ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportResultRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+              example:
+                code: 10000
+                message: "Success"
+                data:
+                  id: 5001
+                  status: RESOLVED
+                  target:
+                    type: COMMENT
+                    id: 3201
+                    title: "明年考研交流"
+                    snippet: "评论中反复粘贴广告链接"
+                  reason: "恶意广告"
+                  description: "评论区多次粘贴同一培训机构的推广"
+                  result: "经审核确认违规，该评论和关联账号已处理"
+                  resultNotified: true
+                  resolvedAt: "2024-06-02T09:45:00Z"
+                  createdAt: "2024-06-01T07:12:00Z"
+                  updatedAt: "2024-06-02T09:45:00Z"
+        '401':
+          description: 未登录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 权限不足
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 举报不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '429':
           description: 请求过于频繁
           content:
@@ -4099,6 +4381,141 @@ components:
           type: object
           additionalProperties: {}
           description: 额外上下文信息，键值对形式
+
+    ReportTargetType:
+      type: string
+      description: 举报对象类型
+      enum:
+        - USER
+        - POST
+        - COMMENT
+      example: POST
+
+    ReportStatus:
+      type: string
+      description: 举报处理状态
+      enum:
+        - PENDING
+        - RESOLVED
+        - REJECTED
+      example: PENDING
+
+    ReportTargetInfo:
+      type: object
+      description: 举报对象摘要信息
+      properties:
+        type:
+          $ref: '#/components/schemas/ReportTargetType'
+        id:
+          type: integer
+          description: 举报对象ID
+          example: 1203
+        title:
+          type: string
+          nullable: true
+          description: 对象标题或昵称
+          example: "考试心得分享"
+        snippet:
+          type: string
+          nullable: true
+          description: 对象内容摘要
+          example: "该评论多次发送广告链接"
+
+    CreateReportRequest:
+      type: object
+      description: 举报提交请求参数
+      required:
+        - targetType
+        - targetId
+        - reason
+      properties:
+        targetType:
+          $ref: '#/components/schemas/ReportTargetType'
+        targetId:
+          type: integer
+          minimum: 1
+          description: 举报对象ID
+          example: 3345
+        reason:
+          type: string
+          maxLength: 255
+          description: 举报原因简述
+          example: "发布广告内容"
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: 举报详细说明
+          example: "该用户在多个帖子评论区重复发布外部广告链接"
+
+    ReportResultRequest:
+      type: object
+      description: 举报处理结果请求参数
+      required:
+        - status
+        - result
+      properties:
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+        result:
+          type: string
+          maxLength: 2000
+          description: 处理说明
+          example: "已确认违规，相关内容已删除。"
+        redirectUrl:
+          type: string
+          format: uri
+          maxLength: 1024
+          nullable: true
+          description: 举报结果跳转链接
+          example: "https://bbs.example.com/reports/5001"
+
+    ReportResponse:
+      type: object
+      description: 举报详情信息
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 5001
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+        target:
+          $ref: '#/components/schemas/ReportTargetInfo'
+        reason:
+          type: string
+          description: 举报原因
+          example: "发布广告内容"
+        description:
+          type: string
+          nullable: true
+          description: 举报详细说明
+          example: "该用户在多个贴子下发布推广链接"
+        result:
+          type: string
+          nullable: true
+          description: 审核结果说明
+          example: "已确认违规，账号被禁言7天"
+        resultNotified:
+          type: boolean
+          description: 举报结果是否已通知举报者
+          example: true
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 举报审核完成时间
+          example: "2024-06-01T09:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: 举报创建时间
+          example: "2024-05-31T10:15:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 举报更新时间
+          example: "2024-05-31T10:15:00Z"
           example:
             postId: 2001
             commentId: 3001
@@ -4165,6 +4582,43 @@ components:
           type: boolean
           example: false
 
+    ReportPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportResponse'
+        pageable:
+          $ref: '#/components/schemas/PageMetadata'
+        totalElements:
+          type: integer
+          format: int64
+          example: 2
+        totalPages:
+          type: integer
+          example: 1
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        sort:
+          $ref: '#/components/schemas/SortInfo'
+        numberOfElements:
+          type: integer
+          example: 2
+        first:
+          type: boolean
+          example: true
+        last:
+          type: boolean
+          example: true
+        empty:
+          type: boolean
+          example: false
+
     NotificationDetailResponse:
       type: object
       properties:
@@ -4188,6 +4642,18 @@ components:
           example: "Success"
         data:
           $ref: '#/components/schemas/NotificationPage'
+
+    ReportPageResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 10000
+        message:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/ReportPage'
 
     EmptyResponse:
       type: object
