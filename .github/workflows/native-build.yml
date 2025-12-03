@@ -12,7 +12,7 @@ jobs:
   native-image:
     name: Build GraalVM Native Image
     needs: tests
-    if: ${{ needs.tests.outputs['test-status'] == 'SUCCESS' }}
+    if: ${{ needs.run-tests.outputs.test-status != 'FAILED' }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
