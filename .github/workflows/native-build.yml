@@ -18,8 +18,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up GraalVM JDK 23
-        uses: actions/setup-java@v4
-        with: graalvm/setup-graalvm@v1
+        uses: graalvm/setup-graalvm@v1
+        with: 
           java-version: '17'
           cache: maven
 
