@@ -107,5 +107,4 @@ bbs:
       app-secret: ${WECHAT_APP_APP_SECRET}
   validator:
     sensitive-words:
-      include:
-        - ni
+      file: ${SENSITIVE_WORDS_FILE}
