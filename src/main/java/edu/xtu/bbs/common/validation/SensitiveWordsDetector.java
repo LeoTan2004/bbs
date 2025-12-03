@@ -1,11 +1,14 @@
 package edu.xtu.bbs.common.validation;
 
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Set;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SensitiveWordsDetector {
@@ -20,7 +23,8 @@ public class SensitiveWordsDetector {
             loaded = true;
         } catch (UnsatisfiedLinkError e) {
             loaded = false;
-            log.warn("Failed to load sensitive words native library via java.library.path.", e);
+            log.debug("Failed to load sensitive words native library via System.loadLibrary.", e);
+            log.warn("Failed to load sensitive words native library via java.library.path.");
             try {
                 Path devLibrary = Path.of("target", "native", System.mapLibraryName(LIB_NAME));
                 if (Files.exists(devLibrary)) {
@@ -29,26 +33,62 @@ public class SensitiveWordsDetector {
                     log.info("Loaded sensitive words native library from {}", devLibrary);
                 }
             } catch (UnsatisfiedLinkError | SecurityException inner) {
-                log.error("Failed to load sensitive words native library from development path.", inner);
+                log.warn("Failed to load sensitive words native library from development path.");
+            }
+            if (loaded || loadLibraryFromJarClasspath()) {
+                loaded = true;
+            } else {
+                log.error("Sensitive words native library is not available.");
             }
         }
         NATIVE_AVAILABLE = loaded;
     }
 
+    private static boolean loadLibraryFromJarClasspath() {
+        String libraryFileName = System.mapLibraryName(LIB_NAME);
+        String resourcePath = "META-INF/native/" + libraryFileName;
+        try (InputStream inputStream = SensitiveWordsDetector.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            return loadLib(libraryFileName, resourcePath, inputStream);
+        } catch (UnsatisfiedLinkError | SecurityException e) {
+            log.debug("Failed to load sensitive words native library from classpath.", e);
+            log.warn("Failed to load sensitive words native library extracted from classpath.");
+            return false;
+        } catch (IOException e) {
+            log.debug("Failed to extract sensitive words native library from classpath.", e);
+            log.warn("Failed to extract sensitive words native library from classpath.");
+            return false;
+        }
+    }
+
+    private static boolean loadLib(String libraryFileName, String resourcePath, InputStream inputStream) throws IOException {
+        if (inputStream == null) {
+            log.warn("Sensitive words native library not found on classpath: {}", resourcePath);
+            return false;
+        }
+        Path tempDir = Files.createTempDirectory("sensitive_words_native_");
+        Path tempLibrary = tempDir.resolve(libraryFileName);
+        Files.copy(inputStream, tempLibrary, StandardCopyOption.REPLACE_EXISTING);
+        System.load(tempLibrary.toAbsolutePath().toString());
+        tempLibrary.toFile().deleteOnExit();
+        tempDir.toFile().deleteOnExit();
+        log.info("Loaded sensitive words native library from classpath resource {}", resourcePath);
+        return true;
+    }
+
     /**
      * Set sensitive words.
      *
-     * @apiNote Words are persisted to a temporary UTF-8 encoded file before the
-     *          native matcher loads them, so inputs must be encoded consistently
-     *          with the application text.
      * @param words the sensitive words array
+     * @apiNote Words are persisted to a temporary UTF-8 encoded file before the
+     * native matcher loads them, so inputs must be encoded consistently
+     * with the application text.
      */
     protected void setSensitiveWords(Set<String> words) {
         if (!NATIVE_AVAILABLE) {
             log.warn("Sensitive words native detector is unavailable, skipping initialization.");
             return;
         }
-        if (words == null || words.size() == 0) {
+        if (words == null || words.isEmpty()) {
             log.warn("No sensitive words provided.");
             return;
         }
@@ -101,7 +141,7 @@ public class SensitiveWordsDetector {
 
     /**
      * Check whether the content contains sensitive words
-     * 
+     *
      * @param content the content to be checked
      * @return true if contains sensitive words, false otherwise
      */
@@ -109,11 +149,11 @@ public class SensitiveWordsDetector {
 
     /**
      * Check whether the content contains sensitive words
-     * 
+     *
      * @param content the content to be checked
      * @return true if contains sensitive words, false otherwise
      * @implNote Whitespace characters (space, tab, newline, etc.) are ignored
-     *           during native matching.
+     * during native matching.
      */
     public boolean containsSensitiveWords(String content) {
         if (!NATIVE_AVAILABLE) {

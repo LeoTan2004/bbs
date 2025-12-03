@@ -21,7 +21,9 @@
         <native.compiler>gcc</native.compiler>
         <native.library.name>sensitive_words_detector</native.library.name>
         <native.output.dir>${project.build.directory}/native</native.output.dir>
+        <!--suppress UnresolvedMavenProperty -->
         <jni.include.dir>${env.JAVA_HOME}/include</jni.include.dir>
+        <!--suppress UnresolvedMavenProperty -->
         <jni.os.include.dir>${env.JAVA_HOME}/include/linux</jni.os.include.dir>
     </properties>
 
@@ -110,6 +112,10 @@
                     <groupId>org.bouncycastle</groupId>
                     <artifactId>bcprov-jdk15on</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.ini4j</groupId>
+                    <artifactId>ini4j</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -158,6 +164,30 @@
                                     <arg value="-pthread"/>
                                 </exec>
                             </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-native-library</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF/native</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${native.output.dir}</directory>
+                                    <includes>
+                                        <include>lib${native.library.name}.so</include>
+                                    </includes>
+                                </resource>
+                            </resources>
                         </configuration>
                     </execution>
                 </executions>
