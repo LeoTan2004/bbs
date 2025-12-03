@@ -1,0 +1,48 @@
+name: Build Native Artifact
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    uses: ./.github/workflows/test.yml
+
+  native-image:
+    name: Build GraalVM Native Image
+    needs: tests
+    if: ${{ needs.tests.outputs['test-status'] == 'SUCCESS' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GraalVM JDK 23
+        uses: actions/setup-java@v4
+        with:
+          distribution: graalvm
+          java-version: '23'
+          cache: maven
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential zlib1g-dev
+
+      - name: Install native-image component
+        run: gu install native-image
+
+      - name: Build native executable
+        run: ./mvnw -B -DskipTests native:compile
+
+      - name: Package native artifacts
+        run: |
+          cd target
+          find native -maxdepth 1 -name 'lib*.so' -exec cp {} . \;
+          tar czf bbs-native-linux-x64.tar.gz bbs lib*.so
+
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bbs-native-linux-x64
+          path: target/bbs-native-linux-x64.tar.gz

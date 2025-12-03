@@ -4,6 +4,7 @@ import io.jsonwebtoken.io.Encoders;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
@@ -12,6 +13,7 @@ import java.time.Duration;
 @Slf4j
 @ConfigurationProperties(prefix = "bbs.security.jwt")
 @Component
+@ImportRuntimeHints(JwtRuntimeHintsRegistrar.class)
 @Data
 public class JwtTokenConfiguration {
     /**

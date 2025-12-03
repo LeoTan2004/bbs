@@ -99,7 +99,6 @@ bbs:
       max-comment-media: ${OSS_MAX_FILES_PER_COMMENT:5}
   security:
     jwt:
-      secret-key: ${JWT_SECRET_KEY}
       expired-time: 2h
   wechat:
     app:

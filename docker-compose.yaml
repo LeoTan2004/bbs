@@ -6,7 +6,7 @@ services:
       MYSQL_DATABASE: bbs_dev
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./sql/user-schema.sql:/docker-entrypoint-initdb.d/user-schema.sql
+      - ./sql/:/docker-entrypoint-initdb.d/
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 5s
