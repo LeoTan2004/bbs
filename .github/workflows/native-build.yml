@@ -2,8 +2,19 @@ name: Build Native Artifact
 
 on:
   push:
+    paths:
+      - src
+      - pom.xml
+      - .github/workflows/test.yml
+      - .github/workflows/native-build.yml
   pull_request:
+    paths:
+      - src
+      - pom.xml
+      - .github/workflows/test.yml
+      - .github/workflows/native-build.yml
   workflow_dispatch:
+
 
 jobs:
   tests:
