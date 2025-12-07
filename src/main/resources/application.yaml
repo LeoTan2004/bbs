@@ -32,6 +32,13 @@ management:
       probes:
         enabled: true
       show-details: never
+      group:
+        liveness:
+          include: livenessState, ping, db, diskSpace
+        readiness:
+          include: readinessState, ping, db, diskSpace
+        mail:
+          include: mail
 
 bbs:
   oss:

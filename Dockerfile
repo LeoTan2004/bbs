@@ -14,8 +14,7 @@ COPY mvnw pom.xml ./
 RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        gcc g++ make \
-        && rm -rf /var/lib/apt/lists/*
+        gcc g++ make
 
 # If a `MAVEN_SETTING_FILE` build-arg is provided pointing to a
 # Maven `settings.xml` file, copy it to `/root/.m2/settings.xml`
@@ -56,6 +55,8 @@ FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
+VOLUME /app/logs
+
 COPY --from=builder /app/target/*.jar app.jar
 
 # 7. Create Minimal User to run the Application
@@ -64,7 +65,7 @@ RUN groupadd -r spring && useradd -r -g spring spring \
 
 USER spring
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=90s --retries=3 \
-  CMD curl -f http://localhost:8081/actuator/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8081/actuator/health/liveness || exit 1
 
-CMD ["java", "-jar", "app.jar"]
+CMD ["java", "-jar", "app.jar", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/app/logs/heapdump_<pid>.hprof"]
