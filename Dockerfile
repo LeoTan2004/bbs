@@ -55,7 +55,6 @@ FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
-VOLUME /app/logs
 
 COPY --from=builder /app/target/*.jar app.jar
 
@@ -64,6 +63,7 @@ RUN groupadd -r spring && useradd -r -g spring spring \
  && chown spring:spring /app
 
 USER spring
+
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:8081/actuator/health/liveness || exit 1
